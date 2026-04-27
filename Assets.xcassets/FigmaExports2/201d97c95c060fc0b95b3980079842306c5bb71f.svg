@@ -1,0 +1,9 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 370 47" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path id="Sun" d="M370 0C370 25.9574 287.173 47 185 47C82.8273 47 0 25.9574 0 0H370Z" fill="url(#paint0_radial_9576_4234)"/>
+<defs>
+<radialGradient id="paint0_radial_9576_4234" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(185) rotate(90) scale(47 185)">
+<stop offset="0.110577" stop-color="#00C950"/>
+<stop offset="1" stop-color="#00C950" stop-opacity="0"/>
+</radialGradient>
+</defs>
+</svg>
