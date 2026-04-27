@@ -480,7 +480,8 @@ struct ChatView: View {
                         type: .horizontal,
                         label: PreferencesManager.shared.label("fc_v2_app_label_loading_more", fallback: "Loading...")
                     )
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .scaleEffect(0.65)
+                    .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 4)
                 } else if let followUps = viewModel.followUps(for: msg.id), !followUps.isEmpty {
                     relatedQuestionsSection(followUps: followUps)
@@ -1876,30 +1877,31 @@ struct VoiceInputSheet: View {
     @State private var isProcessing = false
     @State private var errorMessage: String?
     @State private var audioRecorder: AVAudioRecorder?
-    @State private var audioLevels: [CGFloat] = Array(repeating: 0.15, count: 25)
+    @State private var audioLevels: [CGFloat] = Array(repeating: 0.15, count: 36)
     @State private var elapsedSeconds: Int = 0
+    @State private var timerBlinkVisible = true
     @State private var durationTimer: Timer?
     @State private var meterTimer: Timer?
     @State private var audioFileURL: URL?
     private let maxDuration: Int = 30
     private let chatUseCase = ChatUseCase()
 
+    private var remaining: Int { maxDuration - elapsedSeconds }
+
     private var titleText: String {
         if isProcessing { return PreferencesManager.shared.label("fc_v2_app_label_processing", fallback: "Processing...") }
-        if isRecording { return PreferencesManager.shared.label("fc_v2_app_label_listening", fallback: "Listening...") }
-        return "Tap to speak"
+        return PreferencesManager.shared.label("fc_v2_app_label_listening", fallback: "Speak now")
     }
 
     private var subtitleText: String {
-        if isProcessing { return PreferencesManager.shared.label("fc_v2_app_label_one_second_please", fallback: "One second, please.") }
-        if isRecording { return PreferencesManager.shared.label("fc_v2_app_label_listening", fallback: "Speak now") }
+        if isProcessing { return PreferencesManager.shared.label("fc_v2_app_label_one_second_please", fallback: "One second, please...") }
         if let err = errorMessage { return err }
-        return "Tap the microphone to start"
+        return PreferencesManager.shared.label("fc_v2_app_label_ask_your_farming_question", fallback: "Ask about your farm or livestock")
     }
 
     private var durationString: String {
-        let m = elapsedSeconds / 60
-        let s = elapsedSeconds % 60
+        let m = remaining / 60
+        let s = remaining % 60
         return String(format: "%d:%02d", m, s)
     }
 
@@ -1907,24 +1909,25 @@ struct VoiceInputSheet: View {
         VStack(spacing: 0) {
             Spacer()
 
-            VStack(spacing: 12) {
+            // Title + subtitle
+            VStack(spacing: 8) {
                 Text(titleText)
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(AppColors.adaptiveLabel)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(ContentColors.foregroundPrimary)
 
                 Text(subtitleText)
-                    .font(.system(size: 16))
-                    .foregroundStyle(errorMessage != nil && !isRecording && !isProcessing ? AppColors.error : AppColors.adaptiveSecondaryLabel)
+                    .font(AppTypography.bodyMedium())
+                    .foregroundStyle(errorMessage != nil && !isProcessing ? AppColors.error : ContentColors.foregroundSecondary)
                     .multilineTextAlignment(.center)
             }
             .padding(.bottom, 32)
 
+            // Controls: Delete | Waveform | Send
             HStack(spacing: 12) {
-                Button {
-                    handleCancel()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 18, weight: .bold))
+                // Delete / cancel
+                Button { handleCancel() } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(AppColors.accentGreen)
                         .frame(width: 52, height: 52)
                         .background(AppColors.authButtonDarkGreen)
@@ -1932,64 +1935,68 @@ struct VoiceInputSheet: View {
                 }
                 .buttonStyle(.plain)
 
+                // Waveform + timer
                 ZStack {
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(Color.gray.opacity(0.12))
+                    Capsule()
+                        .fill(ContentColors.surfacePrimary)
 
-                    HStack(alignment: .center, spacing: 1.5) {
+                    HStack(alignment: .center, spacing: 2) {
                         ForEach(0..<audioLevels.count, id: \.self) { i in
-                            RoundedRectangle(cornerRadius: 1)
-                                .fill(AppColors.authButtonDarkGreen.opacity(0.6))
-                                .frame(width: 2.5, height: max(3, audioLevels[i] * 32))
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(isProcessing ? Color(.systemGray4) : AppColors.accentGreen)
+                                .frame(width: 3, height: max(6, audioLevels[i] * 30))
                         }
-
                         Text(durationString)
                             .font(.system(size: 13, weight: .medium).monospacedDigit())
-                            .foregroundStyle(AppColors.adaptiveSecondaryLabel)
-                            .frame(minWidth: 38, alignment: .trailing)
-                            .padding(.leading, 8)
+                            .foregroundStyle(isProcessing ? ContentColors.foregroundSecondary.opacity(0.5) : ContentColors.foregroundSecondary)
+                            .opacity(remaining <= 5 && isRecording ? (timerBlinkVisible ? 1 : 0) : 1)
+                            .frame(minWidth: 36, alignment: .trailing)
+                            .padding(.leading, 6)
                     }
-                    .frame(height: 32)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 10)
                 }
-                .frame(height: 48)
+                .frame(height: 50)
 
-                Button {
-                    handleConfirm()
-                } label: {
+                // Send / confirm
+                Button { handleConfirm() } label: {
                     ZStack {
                         Circle()
                             .fill(AppColors.authButtonDarkGreen)
                             .frame(width: 52, height: 52)
-
-                        if isRecording && !isProcessing {
-                            Circle()
-                                .stroke(AppColors.accentGreen, lineWidth: 3)
-                                .frame(width: 58, height: 58)
-                                .opacity(0.5)
+                        if isProcessing {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accentGreen))
+                                .scaleEffect(0.9)
+                        } else {
+                            Image(systemName: "arrow.up")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(AppColors.accentGreen)
                         }
-
-                        Image(systemName: isProcessing ? "hourglass" : (isRecording ? "checkmark" : "mic.fill"))
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(AppColors.accentGreen)
                     }
                 }
                 .buttonStyle(.plain)
-                .disabled(isProcessing)
+                .disabled(isProcessing || !isRecording)
             }
             .padding(.horizontal, 20)
 
             Spacer().frame(height: 32)
 
-            Text("Speak is a beta feature")
-                .font(.system(size: 13))
-                .foregroundStyle(AppColors.adaptiveSecondaryLabel)
+            // Footer
+            HStack(spacing: 6) {
+                Image(systemName: "info.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(AppColors.accentGreen)
+                Text(PreferencesManager.shared.label("fc_v2_app_label_keep_background_noise_low", fallback: "Keep background noise low"))
+                    .font(AppTypography.bodySmall())
+                    .foregroundStyle(ContentColors.foregroundSecondary)
+                    .lineLimit(1)
+            }
 
             Spacer()
         }
-        .padding()
-        .background(AppColors.adaptiveGroupedBackground)
-        .presentationDetents([.medium])
+        .padding(.horizontal)
+        .background(Color(.systemBackground))
+        .presentationDetents([.height(320)])
         .presentationDragIndicator(.visible)
         .interactiveDismissDisabled(isProcessing)
         .onAppear { startRecording() }
@@ -2068,10 +2075,19 @@ struct VoiceInputSheet: View {
         errorMessage = nil
         elapsedSeconds = 0
 
-        durationTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+        var halfTicks = 0
+        durationTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
             DispatchQueue.main.async {
-                elapsedSeconds += 1
-                if elapsedSeconds >= maxDuration { autoStopAndConfirm() }
+                halfTicks += 1
+                if halfTicks % 2 == 0 {
+                    elapsedSeconds += 1
+                    if elapsedSeconds >= maxDuration { autoStopAndConfirm() }
+                }
+                if (maxDuration - elapsedSeconds) <= 5 {
+                    timerBlinkVisible.toggle()
+                } else {
+                    timerBlinkVisible = true
+                }
             }
         }
 
