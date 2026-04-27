@@ -161,25 +161,29 @@ private struct TipCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             if showIcon {
-                Image(systemName: "lightbulb.fill")
-                    .font(.system(size: 18, weight: .regular))
-                    .foregroundStyle(AppColors.green500)
-                    .frame(width: 24, height: 24)
+                ZStack {
+                    Circle()
+                        .fill(AppColors.green500)
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "lightbulb.fill")
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundStyle(.white)
+                }
             }
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(title)
                     .font(AppTypography.labelLarge())
-                    .foregroundStyle(AppColors.adaptiveLabel)
+                    .foregroundStyle(ContentColors.foregroundPrimary)
                 Text(bodyText)
                     .font(AppTypography.bodySmall())
-                    .foregroundStyle(AppColors.adaptiveSecondaryLabel)
+                    .foregroundStyle(ContentColors.foregroundPrimary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppColors.adaptiveSecondaryGroupedBackground)
+        .background(ContentColors.surfaceActive)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }

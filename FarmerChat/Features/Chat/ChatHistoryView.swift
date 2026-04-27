@@ -13,7 +13,7 @@ struct ChatHistoryView: View {
         VStack(spacing: 0) {
             // UI_CHAT_HISTORY.md §1 — neutral DefaultAppBar, menu left, no right slot.
             DefaultAppBar(
-                title: PreferencesManager.shared.label("fc_v2_app_label_recent_chats", fallback: "Recent Chats"),
+                title: PreferencesManager.shared.label("fc_v2_app_label_past_advice", fallback: "Past Advice"),
                 leftIcon: "line.3.horizontal",
                 onLeft: { navigator.showDrawer = true }
             )
@@ -89,9 +89,9 @@ struct ChatHistoryView: View {
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(sections) { section in
-                    // §1 — section title (titleSmall/bold) with top 12 / bottom 8 padding.
+                    // Section title — labelLarge/bold, matching Android ChatHistoryScreen.
                     Text(section.title)
-                        .font(AppTypography.titleSmall())
+                        .font(AppTypography.labelLarge())
                         .foregroundStyle(ContentColors.foregroundPrimary)
                         .padding(.top, 12)
                         .padding(.bottom, 8)
@@ -109,12 +109,21 @@ struct ChatHistoryView: View {
                             )
                         }
                     }
+                    // Android equivalent of lastVisible >= total - 3:
+                    // trigger loadNextPage when the last section's card scrolls into view.
+                    .onAppear {
+                        if section.id == sections.last?.id,
+                           viewModel.canLoadMore, !viewModel.isLoadingMore,
+                           viewModel.paginationError == nil {
+                            Task { await viewModel.loadNextPage() }
+                        }
+                    }
                 }
 
-                // §4 — prefetch sentinel: fires next-page load as footer scrolls into view.
+                // Backup sentinel — made taller so LazyVStack reliably detects it.
                 if viewModel.canLoadMore && !viewModel.isLoadingMore && viewModel.paginationError == nil {
                     Color.clear
-                        .frame(height: 1)
+                        .frame(height: 80)
                         .onAppear { Task { await viewModel.loadNextPage() } }
                 }
                 if viewModel.isLoadingMore {

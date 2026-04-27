@@ -161,16 +161,24 @@ struct AppDrawer: View {
 
     private var recentChatsSection: some View {
         VStack(spacing: 0) {
+            // Section header always visible — present during loading, error, and populated states.
+            Text(prefs.label("fc_v2_app_label_past_advice", fallback: "Past Advice"))
+                .font(AppTypography.labelLarge())
+                .foregroundStyle(drawerForegroundPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 22)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
+
             if case .loading = historyState {
                 VStack(spacing: 12) {
-                    ProgressView()
-                        .tint(drawerForegroundPrimary)
+                    LogoSpinner(type: .vertical, continuous: true)
                     Text(prefs.label("fc_v2_app_label_loading_chats", fallback: "Loading chats…"))
-                        .font(AppTypography.bodySmall())
+                        .font(AppTypography.labelMedium())
                         .foregroundStyle(drawerForegroundSecondary)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
+                .padding(.vertical, 32)
             } else if case .error(let msg) = historyState {
                 errorRetryView(message: msg)
             } else if historyItems.isEmpty {
@@ -184,13 +192,6 @@ struct AppDrawer: View {
                 ZStack(alignment: .bottom) {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(prefs.label("fc_v2_app_label_recent_chats", fallback: "Recent chats"))
-                                .font(AppTypography.titleMedium())
-                                .foregroundStyle(drawerForegroundPrimary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 22)
-                                .padding(.top, 12)
-                                .padding(.bottom, 2)
 
                             ForEach(Array(historyItems.prefix(8).enumerated()), id: \.offset) { idx, item in
                                 recentChatRow(item: item, index: idx)
@@ -260,6 +261,15 @@ struct AppDrawer: View {
         }
     }
 
+    private static func drawerMessageIcon(_ type: String?) -> String {
+        switch type?.lowercased() {
+        case "image": return "camera.fill"
+        case "audio", "voice": return "mic.fill"
+        case "text": return "keyboard"
+        default: return "bubble.left.fill"
+        }
+    }
+
     private func recentChatRow(item: ConversationListItem, index: Int) -> some View {
         Button {
             let cid = item.displayId.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -272,7 +282,7 @@ struct AppDrawer: View {
             isPresented = false
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: "doc.text.fill")
+                Image(systemName: Self.drawerMessageIcon(item.message_type))
                     .font(.system(size: iconSizeSmall))
                     .foregroundStyle(AppColors.accentGreen)
                     .frame(width: iconSizeSmall + 4, height: iconSizeSmall + 4)

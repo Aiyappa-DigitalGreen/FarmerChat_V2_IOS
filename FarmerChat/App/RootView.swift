@@ -149,7 +149,7 @@ extension AppDestination: @retroactive Identifiable {
         case .language: return "language"
         case .enterName: return "enterName"
         case .home: return "home"
-        case .chat(_, _, _, _, _, _, _, _, _): return "chat"
+        case .chat(_, _, _, _, _, _, _, _, _, _): return "chat"
         case .chatHistory: return "chatHistory"
         case .settings: return "settings"
         case .settingsName: return "settingsName"

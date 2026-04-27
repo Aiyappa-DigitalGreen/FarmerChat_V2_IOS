@@ -88,18 +88,18 @@ struct HomeView: View {
         .onChange(of: viewModel.feedState.isLoading) { _, loading in
             withAnimation(.easeInOut(duration: 0.4)) {
                 let weatherLoading = viewModel.weatherState.isLoading
-                weatherAlpha = (loading || weatherLoading) ? 0 : (viewModel.weatherState.value != nil ? 1 : 0)
+                weatherAlpha = (loading || weatherLoading) ? 0 : 1
             }
         }
         .onChange(of: viewModel.weatherState.isLoading) { _, weatherLoading in
             withAnimation(.easeInOut(duration: 0.4)) {
                 let screenLoading = viewModel.feedState.isLoading
-                weatherAlpha = (screenLoading || weatherLoading) ? 0 : (viewModel.weatherState.value != nil ? 1 : 0)
+                weatherAlpha = (screenLoading || weatherLoading) ? 0 : 1
             }
         }
         .onAppear {
             let isWeatherLoading = viewModel.weatherState.isLoading
-            weatherAlpha = (viewModel.feedState.isLoading || isWeatherLoading) ? 0 : (viewModel.weatherState.value != nil ? 1 : 0)
+            weatherAlpha = (viewModel.feedState.isLoading || isWeatherLoading) ? 0 : 1
         }
         .onAppear {
             if let (action, source) = navigator.consumePendingGpsCampaign() {
@@ -172,7 +172,7 @@ struct HomeView: View {
             VoiceInputSheet(
                 onTranscribed: { result in
                     showHomeVoice = false
-                    navigator.navigate(to: .chat(question: result.text, transcriptionId: result.transcriptionId))
+                    navigator.navigate(to: .chat(question: result.text, transcriptionId: result.transcriptionId, audioFileURL: result.audioFileURL))
                 },
                 onError: { msg in
                     showHomeVoice = false
@@ -892,12 +892,13 @@ struct HomeView: View {
     @ViewBuilder
     private func destinationView(_ dest: AppDestination) -> some View {
         switch dest {
-        case .chat(_, let question, let conversationId, let imageUri, let transcriptionId, let preGeneratedAnswer, let followUpQuestions, let homeStatementId, let isWeatherAdviceCTA):
+        case .chat(_, let question, let conversationId, let imageUri, let transcriptionId, let audioFileURL, let preGeneratedAnswer, let followUpQuestions, let homeStatementId, let isWeatherAdviceCTA):
             ChatView(
                 question: question,
                 conversationId: conversationId,
                 imageUri: imageUri,
                 transcriptionId: transcriptionId,
+                audioFileURL: audioFileURL,
                 preGeneratedAnswer: preGeneratedAnswer,
                 followUpQuestions: followUpQuestions ?? [],
                 homeStatementId: homeStatementId,

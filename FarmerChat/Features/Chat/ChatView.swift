@@ -49,6 +49,7 @@ struct ChatView: View {
         conversationId: String? = nil,
         imageUri: String? = nil,
         transcriptionId: String? = nil,
+        audioFileURL: URL? = nil,
         preGeneratedAnswer: String? = nil,
         followUpQuestions: [String] = [],
         homeStatementId: String? = nil,
@@ -66,6 +67,7 @@ struct ChatView: View {
             conversationId: conversationId,
             prefillQuestion: question,
             transcriptionId: transcriptionId,
+            prefillAudioURL: audioFileURL,
             preGeneratedAnswer: preGeneratedAnswer,
             followUpQuestions: followUpQuestions,
             homeStatementId: homeStatementId,
@@ -143,7 +145,7 @@ struct ChatView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
                         .frame(maxWidth: .infinity)
-                        .background(BrandColors.surfacePrimary)
+                        .background(ContentColors.surfaceReadingPrimary)
                 } else {
                     inputBar
                 }
@@ -472,8 +474,17 @@ struct ChatView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            if showResponseExtras, let followUps = viewModel.followUps(for: msg.id), !followUps.isEmpty {
-                relatedQuestionsSection(followUps: followUps)
+            if showResponseExtras {
+                if viewModel.loadingFollowUpIds.contains(msg.id) {
+                    LogoSpinner(
+                        type: .horizontal,
+                        label: PreferencesManager.shared.label("fc_v2_app_label_loading_more", fallback: "Loading...")
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 4)
+                } else if let followUps = viewModel.followUps(for: msg.id), !followUps.isEmpty {
+                    relatedQuestionsSection(followUps: followUps)
+                }
             }
             // Android ChatResponseActions.kt:172-178 — hint lives inside ChatResponseActions,
             // so it disappears with everything else while loading.
@@ -519,9 +530,8 @@ struct ChatView: View {
                             .scaleEffect(0.7)
                             .frame(width: 14, height: 14)
                     } else if isThisPlaying {
-                        Image(systemName: "speaker.wave.3.fill")
+                        Image(systemName: "pause.fill")
                             .font(.system(size: 14))
-                            .symbolEffect(.variableColor.iterative, options: .repeating, isActive: true)
                     } else {
                         Image(systemName: "speaker.wave.2.fill")
                             .font(.system(size: 14))
@@ -780,12 +790,19 @@ struct ChatView: View {
     }
 }
 
+private let voiceWaveformHeights: [CGFloat] = [
+    0.4, 0.6, 0.8, 0.5, 0.9, 0.7, 0.5, 0.3, 0.6, 0.8,
+    0.5, 0.7, 0.4, 0.9, 0.6, 0.8, 0.5, 0.3, 0.7, 0.5,
+    0.6, 0.4, 0.8, 0.6, 0.4
+]
+
 struct ChatBubble: View {
     let message: ChatMessageDisplay
     var showListenButton: Bool = false
     var onListen: (() -> Void)? = nil
     @State private var audioPlayer: AVAudioPlayer?
     @State private var isPlayingAudio = false
+    @State private var audioDuration: Double = 0
 
     var body: some View {
         HStack(alignment: .top) {
@@ -821,35 +838,55 @@ struct ChatBubble: View {
                                 .frame(maxWidth: 220, maxHeight: 220)
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-                        if let text = message.content, !text.isEmpty {
-                            Text(text)
-                                .font(AppTypography.bodyMedium())
-                                .foregroundStyle(AppColors.adaptiveLabel)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .multilineTextAlignment(.leading)
-                                .padding(.horizontal, message.wideBannerImage ? 10 : 0)
-                                .padding(.bottom, message.wideBannerImage ? 6 : 0)
-                        }
                         if message.audioURL != nil {
-                            Button {
-                                toggleAudioPlayback()
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: isPlayingAudio ? "stop.fill" : "play.fill")
-                                        .font(.system(size: 12))
-                                    Text(isPlayingAudio ? "Stop" : "Play audio")
-                                        .font(.system(size: 12, weight: .medium))
+                            // Android-style voice player: play button + waveform + duration
+                            HStack(spacing: 10) {
+                                Button { toggleAudioPlayback() } label: {
+                                    ZStack {
+                                        Circle()
+                                            .fill(AppColors.accentGreen)
+                                            .frame(width: 40, height: 40)
+                                        Image(systemName: isPlayingAudio ? "stop.fill" : "play.fill")
+                                            .font(.system(size: 14, weight: .bold))
+                                            .foregroundStyle(.white)
+                                            .offset(x: isPlayingAudio ? 0 : 1)
+                                    }
                                 }
-                                .foregroundStyle(AppColors.authButtonDarkGreen)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(AppColors.accentGreen.opacity(0.15))
-                                .clipShape(Capsule())
+                                .buttonStyle(.plain)
+                                HStack(alignment: .center, spacing: 2) {
+                                    ForEach(0..<voiceWaveformHeights.count, id: \.self) { i in
+                                        RoundedRectangle(cornerRadius: 1)
+                                            .fill(Color.gray.opacity(0.45))
+                                            .frame(width: 2.5, height: voiceWaveformHeights[i] * 28)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                                Text(formatAudioDuration(audioDuration))
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(ContentColors.foregroundSecondary)
+                                    .monospacedDigit()
+                                    .fixedSize()
                             }
-                            .buttonStyle(.plain)
+                            if let text = message.content, !text.isEmpty {
+                                Text(text)
+                                    .font(AppTypography.bodyMedium())
+                                    .foregroundStyle(AppColors.adaptiveLabel)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .multilineTextAlignment(.leading)
+                            }
+                        } else {
+                            if let text = message.content, !text.isEmpty {
+                                Text(text)
+                                    .font(AppTypography.bodyMedium())
+                                    .foregroundStyle(AppColors.adaptiveLabel)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .multilineTextAlignment(.leading)
+                                    .padding(.horizontal, message.wideBannerImage ? 10 : 0)
+                                    .padding(.bottom, message.wideBannerImage ? 6 : 0)
+                            }
                         }
                     }
-                    .padding(message.image != nil || message.wideBannerImage ? 6 : 16)
+                    .padding(message.wideBannerImage ? 6 : (message.image != nil && message.audioURL == nil) ? 6 : 16)
                     .background(chatUserBubbleBg)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                     .shadow(color: Color.black.opacity(0.06), radius: 4, y: 2)
@@ -864,6 +901,7 @@ struct ChatBubble: View {
             .frame(maxWidth: .infinity, alignment: message.isUser ? .trailing : .leading)
             if !message.isUser { Spacer(minLength: 48) }
         }
+        .onAppear { loadAudioDuration() }
     }
 
     private func toggleAudioPlayback() {
@@ -880,6 +918,7 @@ struct ChatBubble: View {
             audioPlayer?.play()
             isPlayingAudio = true
             let duration = audioPlayer?.duration ?? 0
+            if audioDuration == 0 { audioDuration = duration }
             if duration > 0 {
                 DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.1) {
                     isPlayingAudio = false
@@ -888,6 +927,18 @@ struct ChatBubble: View {
         } catch {
             print("[Chat] Audio playback failed: \(error)")
         }
+    }
+
+    private func loadAudioDuration() {
+        guard audioDuration == 0, let url = message.audioURL,
+              let player = try? AVAudioPlayer(contentsOf: url) else { return }
+        audioDuration = player.duration
+    }
+
+    private func formatAudioDuration(_ seconds: Double) -> String {
+        guard seconds > 0 else { return "0:00" }
+        let total = Int(seconds)
+        return "\(total / 60):\(String(format: "%02d", total % 60))"
     }
 }
 
@@ -1001,8 +1052,10 @@ final class ChatViewModel {
     private var conversationId: String?
     private let chatUseCase = ChatUseCase()
     private var prefillQuestion: String?
+    private var prefillAudioURL: URL?
     private var lastAnswerMessageId: String?
     private var pendingFollowUps: [String: [FollowUpItem]] = [:]
+    var loadingFollowUpIds: Set<String> = []
     /// From transcribe_audio; when set, send get_answer with triggered_input_type "audio" and transcription_id.
     private var transcriptionId: String?
     /// Pre-generated content from Home feed card (no API call until user taps "Read full advice" or follow-up).
@@ -1028,6 +1081,7 @@ final class ChatViewModel {
         conversationId: String?,
         prefillQuestion: String?,
         transcriptionId: String? = nil,
+        prefillAudioURL: URL? = nil,
         preGeneratedAnswer: String? = nil,
         followUpQuestions: [String] = [],
         homeStatementId: String? = nil,
@@ -1038,6 +1092,7 @@ final class ChatViewModel {
         self.pregenHeroImageUri = pregenHeroImageUri
         self.prefillQuestion = prefillQuestion
         self.transcriptionId = transcriptionId
+        self.prefillAudioURL = prefillAudioURL
         self.preGeneratedAnswer = preGeneratedAnswer
         self.homeStatementId = homeStatementId
         self.isWeatherAdviceCTA = isWeatherAdviceCTA
@@ -1111,7 +1166,12 @@ final class ChatViewModel {
             return
         }
         if let q = prefillQuestion, !q.isEmpty {
-            await send(q)
+            if let audioURL = prefillAudioURL {
+                prefillAudioURL = nil
+                await sendVoice(text: q, transcriptionId: transcriptionId, audioURL: audioURL)
+            } else {
+                await send(q)
+            }
         }
     }
 
@@ -1364,8 +1424,10 @@ final class ChatViewModel {
     }
 
     private func fireFollowUpFetch(messageId: String, displayId: String) {
+        loadingFollowUpIds.insert(displayId)
         Task { @MainActor [weak chatUseCase] in
             guard let chatUseCase else { return }
+            defer { self.loadingFollowUpIds.remove(displayId) }
             do {
                 let fuRes = try await chatUseCase.followUpQuestions(messageId: messageId, useLatestPrompt: true)
                 let qs = fuRes.questions ?? []
@@ -2088,10 +2150,9 @@ struct VoiceInputSheet: View {
             let res = try await chatUseCase.transcribeAudio(conversationId: conversationId, audioBase64: base64, format: "aac")
 
             await MainActor.run {
-                let confidence = res.confidence_score ?? 0
                 let heardText = (res.heard_input_query ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 
-                if confidence > 0.7 && !heardText.isEmpty {
+                if !heardText.isEmpty {
                     // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.transcriptionSuccess, properties: [AnalyticsConstants.Property.screenName: AnalyticsConstants.Screen.chatScreen], adjustToken: AnalyticsConstants.AdjustToken.transcriptionSuccess)
                     let result = VoiceTranscriptionResult(
                         text: heardText,
@@ -2103,8 +2164,7 @@ struct VoiceInputSheet: View {
                 } else {
                     // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.transcriptionFailed, properties: [AnalyticsConstants.Property.screenName: AnalyticsConstants.Screen.chatScreen], adjustToken: AnalyticsConstants.AdjustToken.transcriptionFailed)
                     deleteAudioFile()
-                    let msg = heardText.isEmpty ? PreferencesManager.shared.label("fc_v2_app_label_transcription_unclear", fallback: "Transcription unclear. Please try again.") : "Couldn't understand: \"\(heardText)\""
-                    onError(msg)
+                    onError(PreferencesManager.shared.label("fc_v2_app_label_transcription_unclear", fallback: "Transcription unclear. Please try again."))
                     dismiss()
                 }
             }
