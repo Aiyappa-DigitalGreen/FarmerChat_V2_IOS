@@ -670,18 +670,20 @@ struct ChatView: View {
     private var inputBar: some View {
         VStack(spacing: 0) {
             if showTextInput {
-                Divider()
+                let hasText = !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 HStack(spacing: 10) {
-                    Button {
-                        isInputFocused = false
-                        showTextInput = false
-                    } label: {
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(AppColors.adaptiveLabel)
-                            .frame(width: 40, height: 40)
+                    // Camera — hidden when text is present
+                    if !hasText {
+                        Button { showChatPhotoSourcePicker = true } label: {
+                            ZStack {
+                                Circle().fill(chatActionBarGreen).frame(width: 48, height: 48)
+                                Image(systemName: "camera.fill")
+                                    .font(.system(size: 20, weight: .medium))
+                                    .foregroundStyle(AppColors.accentGreen)
+                            }
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
 
                     TextField(PreferencesManager.shared.label("fc_v2_app_label_ask_about_your_farm", fallback: "Ask about your farm..."), text: $inputText, axis: .vertical)
                         .focused($isInputFocused)
@@ -690,32 +692,36 @@ struct ChatView: View {
                         .lineLimit(1...4)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
-                        .background(ContentColors.surfaceReadingSecondary)
+                        .background(ContentColors.surfacePrimary)
                         .clipShape(Capsule())
 
+                    // Mic (empty) → Send (typing)
                     Button {
                         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !text.isEmpty else { return }
-                        inputText = ""
-                        isInputFocused = false
-                        showTextInput = false
-                        Task { await viewModel.send(text) }
+                        if !text.isEmpty {
+                            inputText = ""
+                            isInputFocused = false
+                            showTextInput = false
+                            Task { await viewModel.send(text) }
+                        } else {
+                            isInputFocused = false
+                            showTextInput = false
+                            showVoiceInput = true
+                        }
                     } label: {
                         ZStack {
-                            Circle()
-                                .fill(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? AppColors.neutral300 : chatActionBarGreen)
-                                .frame(width: 40, height: 40)
-                            Image(systemName: "arrow.up")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(AppColors.onboardingWhite)
+                            Circle().fill(chatActionBarGreen).frame(width: 48, height: 48)
+                            Image(systemName: hasText ? "arrow.up" : "mic.fill")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundStyle(AppColors.accentGreen)
                         }
                     }
                     .buttonStyle(.plain)
-                    .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
+                    .disabled(hasText && viewModel.isLoading)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-                .background(ContentColors.surfaceReadingPrimary)
+                .background(Color(.systemBackground))
             } else {
                 HStack(spacing: 12) {
                     // Photo — individual dark card

@@ -200,9 +200,10 @@ struct HomeView: View {
     }
 
     private var homeTextInputBar: some View {
-        VStack(spacing: 0) {
-            Divider()
-            HStack(spacing: 10) {
+        let hasText = !homeInputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return HStack(spacing: 10) {
+            // Camera — hidden instantly when text is present (layout collapses, field expands)
+            if !hasText {
                 Button {
                     showHomeTextInput = false
                     homeInputText = ""
@@ -212,47 +213,48 @@ struct HomeView: View {
                         Circle().fill(homeCardGreen).frame(width: 48, height: 48)
                         Image(systemName: "camera.fill")
                             .font(.system(size: 20, weight: .medium))
-                            .foregroundStyle(AppColors.onboardingWhite)
-                    }
-                }
-                .buttonStyle(.plain)
-
-                TextField(prefs.label("fc_v2_app_label_ask_about_your_farm", fallback: "Ask about your farm..."), text: $homeInputText, axis: .vertical)
-                    .focused($isHomeInputFocused)
-                    .textFieldStyle(.plain)
-                    .font(AppTypography.bodyMedium())
-                    .lineLimit(1...4)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(AppColors.adaptiveSecondaryGroupedBackground)
-                    .clipShape(Capsule())
-                    .onAppear { isHomeInputFocused = true }
-
-                Button {
-                    let text = homeInputText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !text.isEmpty {
-                        homeInputText = ""
-                        showHomeTextInput = false
-                        navigator.navigate(to: .chat(question: text))
-                    } else {
-                        showHomeTextInput = false
-                        homeInputText = ""
-                        showHomeVoice = true
-                    }
-                } label: {
-                    ZStack {
-                        Circle().fill(homeCardGreen).frame(width: 48, height: 48)
-                        Image(systemName: homeInputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "mic.fill" : "arrow.up")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundStyle(AppColors.onboardingWhite)
+                            .foregroundStyle(AppColors.accentGreen)
                     }
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(AppColors.adaptiveSecondaryGroupedBackground)
+
+            TextField(prefs.label("fc_v2_app_label_ask_about_your_farm", fallback: "Ask about your farm..."), text: $homeInputText, axis: .vertical)
+                .focused($isHomeInputFocused)
+                .textFieldStyle(.plain)
+                .font(AppTypography.bodyMedium())
+                .lineLimit(1...4)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(ContentColors.surfacePrimary)
+                .clipShape(Capsule())
+                .onAppear { isHomeInputFocused = true }
+
+            // Mic (empty) → Send (typing)
+            Button {
+                let text = homeInputText.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !text.isEmpty {
+                    homeInputText = ""
+                    showHomeTextInput = false
+                    navigator.navigate(to: .chat(question: text))
+                } else {
+                    showHomeTextInput = false
+                    homeInputText = ""
+                    showHomeVoice = true
+                }
+            } label: {
+                ZStack {
+                    Circle().fill(homeCardGreen).frame(width: 48, height: 48)
+                    Image(systemName: hasText ? "arrow.up" : "mic.fill")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(AppColors.accentGreen)
+                }
+            }
+            .buttonStyle(.plain)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color(.systemBackground))
         .transition(.move(edge: .bottom).combined(with: .opacity))
         .animation(.easeOut(duration: 0.2), value: showHomeTextInput)
     }
