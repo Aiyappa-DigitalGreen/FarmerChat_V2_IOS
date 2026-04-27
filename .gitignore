@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode user data
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# Build
+build/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# CocoaPods
+Pods/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Credentials — never commit
+FarmerChat/Config.plist
