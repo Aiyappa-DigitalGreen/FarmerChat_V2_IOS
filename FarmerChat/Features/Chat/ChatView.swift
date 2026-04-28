@@ -1999,9 +1999,6 @@ struct VoiceInputSheet: View {
 
             // Footer
             HStack(spacing: 6) {
-                Image(systemName: "info.circle.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(AppColors.accentGreen)
                 Text(PreferencesManager.shared.label("fc_v2_app_label_voice_input_is_still_improving", fallback: "Voice feature is still improving,please record clear audio"))
                     .font(AppTypography.bodySmall())
                     .foregroundStyle(ContentColors.foregroundSecondary)
