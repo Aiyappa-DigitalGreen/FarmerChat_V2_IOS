@@ -590,9 +590,22 @@ struct ChatView: View {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { saveToast.wrappedValue = nil }
                         return
                     }
-                    let ok = await saveImageToPhotos(image)
-                    saveToast.wrappedValue = ok ? PreferencesManager.shared.label("fc_v2_app_label_saved_to_gallery", fallback: "Saved to gallery") : PreferencesManager.shared.label("fc_v2_app_label_failed_to_save", fallback: "Failed to save")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { saveToast.wrappedValue = nil }
+                    switch await saveImageToPhotos(image) {
+                    case .saved:
+                        saveToast.wrappedValue = PreferencesManager.shared.label("fc_v2_app_label_saved_to_gallery", fallback: "Saved to gallery")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { saveToast.wrappedValue = nil }
+                    case .denied:
+                        saveToast.wrappedValue = PreferencesManager.shared.label("fc_v2_app_label_photo_permission_denied", fallback: "Photo access denied. Enable in Settings.")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            saveToast.wrappedValue = nil
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        }
+                    case .failed:
+                        saveToast.wrappedValue = PreferencesManager.shared.label("fc_v2_app_label_failed_to_save", fallback: "Failed to save")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { saveToast.wrappedValue = nil }
+                    }
                 }
             } label: {
                 HStack(spacing: 6) {
@@ -1749,9 +1762,11 @@ private func writeShareCardToCache(image: UIImage) -> URL? {
     }
 }
 
-/// Save image to Photos library. Uses PHPhotoLibrary so we actually get a success/failure
-/// signal and handle authorization (Android parity: returns Boolean success for toast).
-private func saveImageToPhotos(_ image: UIImage) async -> Bool {
+private enum SavePhotoResult { case saved, denied, failed }
+
+/// Save image to Photos library. Returns .denied when the user has blocked access so the
+/// caller can show a targeted toast and redirect to Settings instead of a generic error.
+private func saveImageToPhotos(_ image: UIImage) async -> SavePhotoResult {
     let status: PHAuthorizationStatus
     if #available(iOS 14, *) {
         status = await withCheckedContinuation { cont in
@@ -1762,14 +1777,15 @@ private func saveImageToPhotos(_ image: UIImage) async -> Bool {
             PHPhotoLibrary.requestAuthorization { cont.resume(returning: $0) }
         }
     }
-    guard status == .authorized || status == .limited else { return false }
-    return await withCheckedContinuation { cont in
+    guard status == .authorized || status == .limited else { return .denied }
+    let ok = await withCheckedContinuation { cont in
         PHPhotoLibrary.shared().performChanges({
             PHAssetChangeRequest.creationRequestForAsset(from: image)
         }) { success, _ in
             cont.resume(returning: success)
         }
     }
+    return ok ? .saved : .failed
 }
 
 // MARK: - Share sheet

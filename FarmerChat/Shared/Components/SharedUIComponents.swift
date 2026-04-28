@@ -713,6 +713,7 @@ struct ListItem: View {
                         .frame(height: 1)
                 }
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .disabled(action == nil)
