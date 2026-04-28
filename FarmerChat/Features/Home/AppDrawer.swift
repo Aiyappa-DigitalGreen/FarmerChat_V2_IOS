@@ -284,7 +284,7 @@ struct AppDrawer: View {
             HStack(spacing: 12) {
                 Image(systemName: Self.drawerMessageIcon(item.message_type))
                     .font(.system(size: iconSizeSmall))
-                    .foregroundStyle(AppColors.accentGreen)
+                    .foregroundStyle(drawerForegroundPrimary)
                     .frame(width: iconSizeSmall + 4, height: iconSizeSmall + 4)
                 Text(item.displayTitle ?? "Chat")
                     .font(.system(size: 15, weight: .regular))
