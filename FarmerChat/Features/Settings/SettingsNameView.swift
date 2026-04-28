@@ -32,10 +32,7 @@ struct SettingsNameView: View {
             DefaultAppBar(
                 title: PreferencesManager.shared.label("fc_v2_app_label_name", fallback: "Name"),
                 leftIcon: "arrow.backward",
-                onLeft: { dismiss() },
-                background: ContentColors.surfaceSecondary,
-                foreground: ContentColors.foregroundPrimary,
-                iconBackground: ContentColors.foregroundPrimary.opacity(0.1)
+                onLeft: { dismiss() }
             )
 
             ScrollView {
