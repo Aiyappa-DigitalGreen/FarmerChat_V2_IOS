@@ -478,7 +478,8 @@ struct ChatView: View {
                 if viewModel.loadingFollowUpIds.contains(msg.id) {
                     LogoSpinner(
                         type: .horizontal,
-                        label: PreferencesManager.shared.label("fc_v2_app_label_loading_more", fallback: "Loading...")
+                        label: PreferencesManager.shared.label("fc_v2_app_label_loading_more", fallback: "Loading..."),
+                        continuous: true
                     )
                     .scaleEffect(0.65)
                     .frame(maxWidth: .infinity, alignment: .center)
