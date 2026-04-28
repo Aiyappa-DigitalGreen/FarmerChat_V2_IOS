@@ -1004,10 +1004,9 @@ struct LoadingPlaceholderView: View {
     var body: some View {
         HStack(spacing: 10) {
             LogoSpinner(type: .horizontal, color: AppColors.green500, label: PreferencesManager.shared.label("fc_v2_app_label_getting_your_answer", fallback: "Getting your answer..."), continuous: true)
-                .scaleEffect(0.75, anchor: .leading)
             Spacer()
         }
-        .padding(10)
+        .padding(14)
         .background(AppColors.adaptiveSecondaryGroupedBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
