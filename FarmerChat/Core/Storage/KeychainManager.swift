@@ -10,7 +10,7 @@ import Security
 
 final class KeychainManager {
     static let shared = KeychainManager()
-    private let service = "digitalgreen.FarmerChat"
+    private let service = "org.digitalgreen.farmer.chatbot"
 
     private init() {}
 
