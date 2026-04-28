@@ -245,7 +245,7 @@ struct HomeView: View {
             } label: {
                 ZStack {
                     Circle().fill(homeCardGreen).frame(width: 48, height: 48)
-                    Image(systemName: hasText ? "arrow.up" : "mic.fill")
+                    Image(systemName: hasText ? "chevron.right" : "mic.fill")
                         .font(.system(size: 20, weight: .medium))
                         .foregroundStyle(AppColors.accentGreen)
                 }
@@ -300,7 +300,7 @@ struct HomeView: View {
                         homePhotoCaption = ""
                         navigateWithImage(img, caption: caption.isEmpty ? nil : caption)
                     } label: {
-                        Image(systemName: "arrow.up")
+                        Image(systemName: "chevron.right")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(.white)
                             .frame(width: 40, height: 40)

@@ -331,7 +331,7 @@ struct ChatView: View {
                         photoCaption = ""
                         Task { await sendImageFromUIImage(img, query: caption.isEmpty ? nil : caption) }
                     } label: {
-                        Image(systemName: "arrow.up")
+                        Image(systemName: "chevron.right")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(.white)
                             .frame(width: 40, height: 40)
@@ -711,7 +711,7 @@ struct ChatView: View {
                     } label: {
                         ZStack {
                             Circle().fill(chatActionBarGreen).frame(width: 48, height: 48)
-                            Image(systemName: hasText ? "arrow.up" : "mic.fill")
+                            Image(systemName: hasText ? "chevron.right" : "mic.fill")
                                 .font(.system(size: 20, weight: .medium))
                                 .foregroundStyle(AppColors.accentGreen)
                         }
@@ -1989,10 +1989,10 @@ struct VoiceInputSheet: View {
 
             // Footer
             HStack(spacing: 6) {
-                Image(systemName: "info.circle.fill")
-                    .font(.system(size: 20))
-                    .foregroundStyle(AppColors.accentGreen)
-                Text(PreferencesManager.shared.label("fc_v2_app_label_keep_background_noise_low", fallback: "Keep background noise low"))
+//                Image(systemName: "info.circle.fill")
+//                    .font(.system(size: 20))
+//                    .foregroundStyle(AppColors.accentGreen)
+                Text(PreferencesManager.shared.label("fc_v2_app_label_voice_input_is_still_improving", fallback: "Voice feature is still improving, please record clear audio"))
                     .font(AppTypography.bodySmall())
                     .foregroundStyle(ContentColors.foregroundSecondary)
                     .lineLimit(1)
