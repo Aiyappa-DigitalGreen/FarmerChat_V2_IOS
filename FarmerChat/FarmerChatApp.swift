@@ -40,7 +40,6 @@ struct FarmerChatApp: App {
             ZStack {
                 AppColors.green800.ignoresSafeArea()
                 RootView()
-                    .id(prefs.appearanceMode.rawValue)
                     .preferredColorScheme(preferredColorScheme)
             }
         }
