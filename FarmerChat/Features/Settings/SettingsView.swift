@@ -47,7 +47,7 @@ struct SettingsView: View {
 
     private var appearanceSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(prefs.label("fc_v2_app_label_appearance", fallback: "Appearance"))
+            Text(prefs.label("fc_v2_app_label_appearance", fallback: "Display"))
                 .font(AppTypography.labelLarge())
                 .foregroundStyle(ContentColors.foregroundPrimary)
 
@@ -77,7 +77,7 @@ struct SettingsView: View {
 
     private var accountDetailsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(prefs.label("fc_v2_app_label_account_details", fallback: "Account details"))
+            Text(prefs.label("fc_v2_app_label_account_details", fallback: "Your information"))
                 .font(AppTypography.labelLarge())
                 .foregroundStyle(ContentColors.foregroundPrimary)
 
@@ -106,6 +106,8 @@ struct SettingsView: View {
                 SecondaryButton(
                     label: prefs.label("fc_v2_app_label_logout", fallback: "Logout"),
                     height: 48,
+                    background: ContentColors.surfaceSecondary,
+                    foreground: ContentColors.foregroundPrimary,
                     action: { Task { await logout() } }
                 )
             } else {

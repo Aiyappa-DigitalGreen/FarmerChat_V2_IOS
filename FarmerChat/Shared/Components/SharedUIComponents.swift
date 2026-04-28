@@ -241,6 +241,7 @@ struct PrimaryButton: View {
                     if state == .chevron {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(ContentColors.buttonPrimaryForeground)
                     } else if let icon = icon, iconPosition == .trailing {
                         Image(systemName: icon)
                             .font(.system(size: 18, weight: .semibold))
@@ -268,6 +269,8 @@ struct SecondaryButton: View {
     var icon: String? = nil
     var iconPosition: IconPosition = .leading
     var isEnabled: Bool = true
+    var background: Color = BrandColors.surfaceSecondary
+    var foreground: Color = BrandColors.foregroundPrimary
     var action: () -> Void
 
     var body: some View {
@@ -284,11 +287,11 @@ struct SecondaryButton: View {
                         .font(.system(size: 18, weight: .semibold))
                 }
             }
-            .foregroundStyle(BrandColors.foregroundPrimary)
+            .foregroundStyle(foreground)
             .padding(.horizontal, 24)
             .frame(maxWidth: .infinity)
             .frame(height: height)
-            .background(BrandColors.surfaceSecondary)
+            .background(background)
             .smoothCorner(Radius.md)
         }
         .buttonStyle(ScaleButtonStyle())

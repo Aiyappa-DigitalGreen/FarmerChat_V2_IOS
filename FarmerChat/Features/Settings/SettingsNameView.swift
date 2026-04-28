@@ -31,8 +31,10 @@ struct SettingsNameView: View {
         VStack(spacing: 0) {
             DefaultAppBar(
                 title: PreferencesManager.shared.label("fc_v2_app_label_name", fallback: "Name"),
-                leftIcon: "chevron.left",
-                onLeft: { dismiss() }
+                leftIcon: "arrow.backward",
+                onLeft: { dismiss() },
+                background: ContentColors.surfaceSecondary,
+                foreground: ContentColors.foregroundPrimary
             )
 
             ScrollView {
