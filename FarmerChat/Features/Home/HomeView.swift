@@ -806,10 +806,10 @@ struct HomeView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "eye")
                                     .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(AppColors.accentGreen)
                                 Text(badgeCountString(badgeCount))
                                     .font(.system(size: 12, weight: .bold))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(AppColors.accentGreen)
                             }
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -834,6 +834,7 @@ struct HomeView: View {
                             .font(AppTypography.onboardingButtonText())
                         Image(systemName: "chevron.right")
                             .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(AppColors.accentGreen)
                         Spacer()
                     }
                     .foregroundStyle(AppColors.onboardingWhite)
