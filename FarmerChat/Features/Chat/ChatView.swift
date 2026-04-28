@@ -711,9 +711,17 @@ struct ChatView: View {
                     } label: {
                         ZStack {
                             Circle().fill(chatActionBarGreen).frame(width: 48, height: 48)
-                            Image(systemName: hasText ? "chevron.right" : "mic.fill")
-                                .font(.system(size: 20, weight: .medium))
-                                .foregroundStyle(AppColors.accentGreen)
+                            if hasText {
+                                Image("icon_send")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 20)
+                                    .foregroundStyle(AppColors.accentGreen)
+                            } else {
+                                Image(systemName: "mic.fill")
+                                    .font(.system(size: 20, weight: .medium))
+                                    .foregroundStyle(AppColors.accentGreen)
+                            }
                         }
                     }
                     .buttonStyle(.plain)
@@ -1974,8 +1982,10 @@ struct VoiceInputSheet: View {
                                 .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accentGreen))
                                 .scaleEffect(0.9)
                         } else {
-                            Image(systemName: "arrow.up")
-                                .font(.system(size: 20, weight: .semibold))
+                            Image("icon_send")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 20)
                                 .foregroundStyle(AppColors.accentGreen)
                         }
                     }

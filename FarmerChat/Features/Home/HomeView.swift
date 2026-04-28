@@ -245,9 +245,17 @@ struct HomeView: View {
             } label: {
                 ZStack {
                     Circle().fill(homeCardGreen).frame(width: 48, height: 48)
-                    Image(systemName: hasText ? "chevron.right" : "mic.fill")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(AppColors.accentGreen)
+                    if hasText {
+                        Image("icon_send")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 20)
+                            .foregroundStyle(AppColors.accentGreen)
+                    } else {
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundStyle(AppColors.accentGreen)
+                    }
                 }
             }
             .buttonStyle(.plain)
@@ -300,12 +308,14 @@ struct HomeView: View {
                         homePhotoCaption = ""
                         navigateWithImage(img, caption: caption.isEmpty ? nil : caption)
                     } label: {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 40, height: 40)
-                            .background(AppColors.accentGreen)
-                            .clipShape(Circle())
+                        ZStack {
+                            Circle().fill(AppColors.accentGreen).frame(width: 40, height: 40)
+                            Image("icon_send")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 16)
+                                .foregroundStyle(.white)
+                        }
                     }
                     .buttonStyle(.plain)
                 }
