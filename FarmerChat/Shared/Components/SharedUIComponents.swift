@@ -223,6 +223,7 @@ struct PrimaryButton: View {
     var icon: String? = nil
     var iconPosition: IconPosition = .leading
     var isEnabled: Bool = true
+    var surface: Color = ContentColors.buttonPrimarySurface
     var action: () -> Void
 
     var body: some View {
@@ -253,7 +254,7 @@ struct PrimaryButton: View {
             .padding(.horizontal, state == .chevron || iconPosition == .trailing ? 16 : 24)
             .frame(maxWidth: .infinity)
             .frame(height: height)
-            .background(ContentColors.buttonPrimarySurface)
+            .background(surface)
             .smoothCorner(Radius.md)
         }
         .buttonStyle(ScaleButtonStyle())
@@ -1145,6 +1146,7 @@ struct FullScreenMessage: View {
             label: primaryCtaLabel,
             state: state,
             height: 64,
+            surface: BrandColors.buttonPrimarySurface,
             action: {
                 guard !(enableDebounce && isDebouncing) else { return }
                 if enableDebounce { isDebouncing = true }
