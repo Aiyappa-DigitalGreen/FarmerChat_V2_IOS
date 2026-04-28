@@ -649,27 +649,12 @@ struct HomeView: View {
         let submitTitle = viewModel.submitButtonTitle(for: section)
         let isTagStyle = mode == .multi
         return VStack(alignment: .leading, spacing: 12) {
-            // UI_HOME.md §2 — explicit dismiss: delay(3000) then dismiss card.
             if !prompt.isEmpty {
-                HStack(alignment: .top, spacing: 8) {
-                    Text(prompt)
-                        .font(AppTypography.bodyMedium())
-                        .foregroundStyle(AppColors.adaptiveLabel)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Button {
-                        viewModel.scheduleDismissExplicit(section: section)
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(AppColors.adaptiveSecondaryLabel)
-                            .frame(width: 28, height: 28)
-                            .background(AppColors.adaptiveFill)
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isSubmitting)
-                }
+                Text(prompt)
+                    .font(AppTypography.bodyMedium())
+                    .foregroundStyle(AppColors.adaptiveLabel)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             if isTagStyle {
                 ScrollView(.vertical, showsIndicators: false) {
