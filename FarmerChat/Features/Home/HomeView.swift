@@ -809,7 +809,7 @@ struct HomeView: View {
                                     .foregroundStyle(AppColors.accentGreen)
                                 Text(badgeCountString(badgeCount))
                                     .font(.system(size: 12, weight: .bold))
-                                    .foregroundStyle(AppColors.accentGreen)
+                                    .foregroundStyle(.white)
                             }
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
