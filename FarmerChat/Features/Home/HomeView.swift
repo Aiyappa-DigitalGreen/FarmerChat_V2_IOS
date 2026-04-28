@@ -559,7 +559,7 @@ struct HomeView: View {
                             .foregroundStyle(AppColors.onboardingWhite)
                         Image(systemName: "chevron.right")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(AppColors.onboardingWhite.opacity(0.7))
+                            .foregroundStyle(AppColors.accentGreen)
                     }
                 } else {
                     HStack(spacing: 6) {
@@ -571,7 +571,7 @@ struct HomeView: View {
                             .foregroundStyle(AppColors.onboardingWhite)
                         Image(systemName: "chevron.right")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(AppColors.onboardingWhite.opacity(0.7))
+                            .foregroundStyle(AppColors.accentGreen)
                     }
                 }
             }
