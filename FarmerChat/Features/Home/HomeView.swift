@@ -13,8 +13,8 @@ private let appBarHeight: CGFloat = 64
 private let inputButtonHeight: CGFloat = 78
 private let radiusMD: CGFloat = 12
 private let radiusLG: CGFloat = 16
-private let homeHeaderLightGreen = Color(hex: 0xFF08361B)
-private let homeCardGreen = Color(hex: 0xFF08361B)
+private let homeHeaderLightGreen = ContentColors.buttonPrimarySurface
+private let homeCardGreen = ContentColors.buttonPrimarySurface
 private let homeSelectionGreen = Color(hex: 0xFF00C950)
 
 struct HomeView: View {
