@@ -357,6 +357,7 @@ struct HomeView: View {
             }
             .frame(maxWidth: .infinity, minHeight: UIScreen.main.bounds.height, alignment: .top)
             .background(ContentColors.surfacePrimary)
+            .background(ScrollBounceDisabler())
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(BrandColors.surfacePrimary.ignoresSafeArea(edges: .top))
@@ -1483,6 +1484,25 @@ private struct HomePhotoSourcePicker: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 20)
+        }
+    }
+}
+
+// MARK: - Scroll bounce disabler
+// Walks up the UIKit superview chain from inside the ScrollView to find the
+// UIScrollView and sets bounces = false, preventing the green rubber-band overscroll.
+private struct ScrollBounceDisabler: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView { UIView() }
+    func updateUIView(_ uiView: UIView, context: Context) {
+        DispatchQueue.main.async {
+            var v: UIView? = uiView.superview
+            while let candidate = v {
+                if let sv = candidate as? UIScrollView {
+                    sv.bounces = false
+                    return
+                }
+                v = candidate.superview
+            }
         }
     }
 }
