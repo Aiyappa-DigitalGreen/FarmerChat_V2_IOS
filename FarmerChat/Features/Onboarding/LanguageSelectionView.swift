@@ -64,10 +64,10 @@ struct LanguageSelectionView: View {
     private var contentArea: some View {
         switch viewModel.languageState {
         case .idle, .loading:
-            LogoSpinner(type: .vertical, label: PreferencesManager.shared.label("fc_v2_app_label_loading_languages", fallback: "Loading languages..."))
+            LogoSpinner(type: .vertical, label: PreferencesManager.shared.label("fc_v2_app_label_loading_languages", fallback: "Loading languages..."), continuous: true)
                 .padding(.vertical, 40)
         case .error:
-            LogoSpinner(type: .vertical, label: PreferencesManager.shared.label("fc_v2_app_label_loading_languages", fallback: "Loading languages..."))
+            LogoSpinner(type: .vertical, label: PreferencesManager.shared.label("fc_v2_app_label_loading_languages", fallback: "Loading languages..."), continuous: true)
                 .padding(.vertical, 40)
         case .success(let langs):
             LazyVStack(spacing: 6) {
