@@ -141,7 +141,7 @@ struct AppDrawer: View {
             HStack(spacing: 12) {
                 Image(systemName: icon)
                     .font(.system(size: 20))
-                    .foregroundStyle(drawerForegroundPrimary)
+                    .foregroundStyle(AppColors.accentGreen)
                     .frame(width: iconSize, height: iconSize)
                 Text(label)
                     .font(AppTypography.labelMedium())
