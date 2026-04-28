@@ -34,7 +34,8 @@ struct SettingsNameView: View {
                 leftIcon: "arrow.backward",
                 onLeft: { dismiss() },
                 background: ContentColors.surfaceSecondary,
-                foreground: ContentColors.foregroundPrimary
+                foreground: ContentColors.foregroundPrimary,
+                iconBackground: ContentColors.foregroundPrimary.opacity(0.1)
             )
 
             ScrollView {

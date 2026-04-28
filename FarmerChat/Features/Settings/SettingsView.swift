@@ -47,7 +47,7 @@ struct SettingsView: View {
 
     private var appearanceSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(prefs.label("fc_v2_app_label_appearance", fallback: "Display"))
+            Text(prefs.label("fc_v2_app_label_display", fallback: "Display"))
                 .font(AppTypography.labelLarge())
                 .foregroundStyle(ContentColors.foregroundPrimary)
 
@@ -77,7 +77,7 @@ struct SettingsView: View {
 
     private var accountDetailsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(prefs.label("fc_v2_app_label_account_details", fallback: "Your information"))
+            Text(prefs.label("fc_v2_app_label_your_information", fallback: "Your information"))
                 .font(AppTypography.labelLarge())
                 .foregroundStyle(ContentColors.foregroundPrimary)
 

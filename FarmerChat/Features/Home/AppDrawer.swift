@@ -21,7 +21,7 @@ private let iconSizeSmall: CGFloat = 18
 
 private let drawerBackground = Color(hex: 0xFF08361B)
 private let drawerRowBackground = Color(hex: 0xFF0D4A23)
-private let drawerSeeAllGreen = Color(hex: 0xFF006F35)
+private let drawerSeeAllGreen = Color(hex: 0xFF008236)
 private let drawerSignUpGreen = Color(hex: 0xFF389B3D)
 private let drawerForegroundPrimary = AppColors.white
 private let drawerForegroundSecondary = AppColors.white.opacity(0.9)

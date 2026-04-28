@@ -25,6 +25,7 @@ struct DefaultAppBar: View {
     var onRightLabel: (() -> Void)? = nil
     var background: Color = BrandColors.surfacePrimary
     var foreground: Color = BrandColors.foregroundPrimary
+    var iconBackground: Color? = nil
 
     var body: some View {
         ZStack {
@@ -70,7 +71,7 @@ struct DefaultAppBar: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(foreground)
                     .frame(width: 42, height: 42)
-                    .background(foreground.opacity(0.12))
+                    .background(iconBackground ?? AppColors.authButtonDarkGreen)
                     .smoothCorner(Radius.md)
             }
             .buttonStyle(.plain)
