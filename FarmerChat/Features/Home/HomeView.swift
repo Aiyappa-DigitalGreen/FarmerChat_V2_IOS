@@ -806,10 +806,11 @@ struct HomeView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "eye")
                                     .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(.white)
                                 Text(badgeCountString(badgeCount))
                                     .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(.white)
                             }
-                            .foregroundStyle(.white)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(Color.black.opacity(0.5))
