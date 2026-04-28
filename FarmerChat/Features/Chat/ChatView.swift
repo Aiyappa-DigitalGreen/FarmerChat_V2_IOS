@@ -1941,10 +1941,10 @@ struct VoiceInputSheet: View {
                 // Cancel (wrong mark)
                 Button { handleCancel() } label: {
                     ZStack {
-                        Circle().fill(Color.red).frame(width: 52, height: 52)
+                        Circle().fill(AppColors.authButtonDarkGreen).frame(width: 52, height: 52)
                         Image(systemName: "xmark")
                             .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColors.accentGreen)
                     }
                 }
                 .buttonStyle(.plain)
@@ -1975,16 +1975,16 @@ struct VoiceInputSheet: View {
                 Button { handleConfirm() } label: {
                     ZStack {
                         Circle()
-                            .fill(AppColors.accentGreen)
+                            .fill(AppColors.authButtonDarkGreen)
                             .frame(width: 52, height: 52)
                         if isProcessing {
                             ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accentGreen))
                                 .scaleEffect(0.9)
                         } else {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 20, weight: .bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppColors.accentGreen)
                         }
                     }
                 }
