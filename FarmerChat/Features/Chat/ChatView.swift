@@ -267,10 +267,10 @@ struct ChatView: View {
             if let msg = saveToastMessage, !msg.isEmpty {
                 Text(msg)
                     .font(AppTypography.labelMedium())
-                    .foregroundStyle(AppColors.onboardingWhite)
+                    .foregroundStyle(AppColors.white)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
-                    .background(chatActionGreen)
+                    .background(AppColors.neutral800)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .padding(.bottom, 24)
             }
@@ -911,6 +911,7 @@ struct ChatBubble: View {
                         text: message.content ?? "",
                         textColor: AppColors.adaptiveLabel
                     )
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
                 }
             }
@@ -1201,6 +1202,7 @@ final class ChatViewModel {
 
     func send(_ text: String) async {
         guard !isLoading else { return }
+        clearAudioPlayback()
         if conversationId == nil {
             if let fromPrefs = PreferencesManager.shared.newConversationId {
                 conversationId = fromPrefs
@@ -1620,7 +1622,11 @@ private let shareCardWidth: CGFloat = 500
 private let shareCardHeight: CGFloat = 700
 // Brand Green700 (matches Android brand.surfacePrimary used for the footer slab).
 private let shareCardFooterGreen = Color(hex: 0xFF115E2B)
-private var shareCaption: String { PreferencesManager.shared.label("fc_v2_app_label_share_app_message", fallback: "Sharing what FarmerChat taught me—super useful. Give it a try on the App Store!") }
+private let shareAppStoreLink = "https://apps.apple.com/app/farmerchat/id6670191002"
+private var shareCaption: String {
+    let base = PreferencesManager.shared.label("fc_v2_app_label_share_app_message", fallback: "Sharing what FarmerChat taught me—super useful. Give it a try on the App Store!")
+    return "\(base)\n\(shareAppStoreLink)"
+}
 
 /// Branded share card — Android parity (ShareCard.kt):
 /// optional photo banner → large black title → markdown body → green footer with logo + tagline.
@@ -1635,36 +1641,41 @@ private struct ShareCardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if let photo {
-                Image(uiImage: photo)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: (shareCardWidth - 32) / 1.85) // Android aspectRatio(1.85)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
-            }
+            // Content capped so footer is always visible at the bottom
+            VStack(spacing: 0) {
+                if let photo {
+                    Image(uiImage: photo)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: (shareCardWidth - 32) / 1.85) // Android aspectRatio(1.85)
+                        .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+                }
 
-            VStack(alignment: .leading, spacing: hasPhoto ? 14 : 16) {
-                Text(String(question.prefix(titleLimit)))
-                    .font(.system(size: hasPhoto ? 24 : 28, weight: .semibold))
-                    .foregroundStyle(.black)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: hasPhoto ? 14 : 16) {
+                    Text(String(question.prefix(titleLimit)))
+                        .font(.system(size: hasPhoto ? 24 : 28, weight: .semibold))
+                        .foregroundStyle(.black)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                MarkdownTextView(
-                    text: String(answer.prefix(bodyLimit)),
-                    textColor: .black
-                )
+                    MarkdownTextView(
+                        text: String(answer.prefix(bodyLimit)),
+                        textColor: .black
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 32)
-            .padding(.top, hasPhoto ? 20 : 32)
-            .padding(.bottom, 32)
+                .padding(.horizontal, 32)
+                .padding(.top, hasPhoto ? 20 : 32)
+                .padding(.bottom, 32)
 
-            Spacer(minLength: 0)
+                Spacer(minLength: 0)
+            }
+            .frame(maxHeight: shareCardHeight - 96)
+            .clipped()
 
             // Footer — brand green bar, logo wordmark + tagline (Android ShareCardFooter)
             HStack(alignment: .center) {
