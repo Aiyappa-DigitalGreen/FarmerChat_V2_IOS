@@ -121,6 +121,7 @@ struct TipsCarousel: View {
             #if os(iOS)
             .tabViewStyle(.page(indexDisplayMode: .never))
             #endif
+            .allowsHitTesting(false)
             .frame(height: 90)
 
             TipPaginationIndicator(
