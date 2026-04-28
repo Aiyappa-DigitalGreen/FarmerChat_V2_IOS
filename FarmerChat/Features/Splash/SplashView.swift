@@ -48,8 +48,7 @@ struct SplashView: View {
             LogoMarkShape()
                 .fill(BrandColors.foregroundPrimary)
                 .frame(width: logoSize, height: logoSize)
-                .scaleEffect(contentAppeared ? 1 : 0.8)
-                .opacity(contentAppeared ? 1 : 0)
+                .scaleEffect(contentAppeared ? 1 : 0.85)
                 .rotationEffect(.degrees(logoRotation))
         }
         // UI_SPLASH.md §4 — reassurance toast slides in from bottom, Radius.LG, 8dp shadow.
