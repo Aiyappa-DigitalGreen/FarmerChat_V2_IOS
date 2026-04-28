@@ -1938,14 +1938,14 @@ struct VoiceInputSheet: View {
 
             // Controls: Delete | Waveform | Send
             HStack(spacing: 12) {
-                // Delete / cancel
+                // Cancel (wrong mark)
                 Button { handleCancel() } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(AppColors.accentGreen)
-                        .frame(width: 52, height: 52)
-                        .background(AppColors.authButtonDarkGreen)
-                        .clipShape(Circle())
+                    ZStack {
+                        Circle().fill(Color.red).frame(width: 52, height: 52)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
                 }
                 .buttonStyle(.plain)
 
@@ -1971,22 +1971,20 @@ struct VoiceInputSheet: View {
                 }
                 .frame(height: 50)
 
-                // Send / confirm
+                // Confirm (tick)
                 Button { handleConfirm() } label: {
                     ZStack {
                         Circle()
-                            .fill(AppColors.authButtonDarkGreen)
+                            .fill(AppColors.accentGreen)
                             .frame(width: 52, height: 52)
                         if isProcessing {
                             ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accentGreen))
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                 .scaleEffect(0.9)
                         } else {
-                            Image("icon_send")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 20)
-                                .foregroundStyle(AppColors.accentGreen)
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundStyle(.white)
                         }
                     }
                 }
