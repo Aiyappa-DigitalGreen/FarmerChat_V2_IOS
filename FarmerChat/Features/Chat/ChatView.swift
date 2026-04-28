@@ -632,10 +632,10 @@ struct ChatView: View {
                             Text(PreferencesManager.shared.label("fc_v2_app_label_ask", fallback: "Ask"))
                                 .font(AppTypography.labelMedium())
                                 .foregroundStyle(AppColors.onboardingWhite)
-                                .padding(.horizontal, 18)
-                                .padding(.vertical, 8)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 6)
                                 .background(chatAskButtonGreen)
-                                .clipShape(Capsule())
+                                .clipShape(RoundedRectangle(cornerRadius: Radius.sm))
                         }
                         .buttonStyle(.plain)
                     }
@@ -990,9 +990,10 @@ struct LoadingPlaceholderView: View {
     var body: some View {
         HStack(spacing: 10) {
             LogoSpinner(type: .horizontal, color: AppColors.green500, label: PreferencesManager.shared.label("fc_v2_app_label_getting_your_answer", fallback: "Getting your answer..."), continuous: true)
+                .scaleEffect(0.75, anchor: .leading)
             Spacer()
         }
-        .padding(14)
+        .padding(10)
         .background(AppColors.adaptiveSecondaryGroupedBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
