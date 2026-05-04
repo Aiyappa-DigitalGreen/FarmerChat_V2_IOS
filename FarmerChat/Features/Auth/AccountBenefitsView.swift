@@ -6,6 +6,7 @@
 import SwiftUI
 import Network
 
+// Figma 5.2: photo pill dimensions match spec
 private let photoWidth: CGFloat = 300
 private let photoHeight: CGFloat = 450
 private let benefitsGreen = Color(hex: 0xFF008236)
@@ -23,10 +24,12 @@ struct AccountBenefitsView: View {
             benefitsGreen.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                AuthFlowHeader(title: "Sign up", showSkip: true, useBackButton: true, onClose: { dismiss() }, onSkip: { skipOrPop() })
+                // Figma 5.2: green app bar, back arrow (chevron.left) on left, "Sign up" centered white, "Skip" on right
+                AuthFlowHeader(title: PreferencesManager.shared.label("fc_v2_app_label_sign_up", fallback: "Sign up"), showSkip: true, useBackButton: true, onClose: { dismiss() }, onSkip: { skipOrPop() })
 
                 Spacer(minLength: 0)
 
+                // Figma 5.2: photo is circular pill (Capsule), 300×450 max, centered
                 if let img = UIImage(named: "FarmerOnboarding"), !img.size.equalTo(.zero) {
                     Image(uiImage: img)
                         .resizable()
@@ -44,17 +47,18 @@ struct AccountBenefitsView: View {
 
                 Spacer(minLength: 16)
 
+                // Figma 5.2: title font ~24pt bold, subtitle ~17pt regular, both white
                 VStack(spacing: 10) {
-                    Text("Save your questions\nand answers")
+                    Text(PreferencesManager.shared.label("fc_v2_app_label_save_your_questions_answers", fallback: "Save your questions\nand answers"))
                         .font(.system(size: 24, weight: .bold))
-                        .foregroundStyle(AppColors.onboardingWhite)
+                        .foregroundStyle(AppColors.white)
                         .multilineTextAlignment(.center)
                         .opacity(contentAppeared ? 1 : 0)
                         .offset(y: contentAppeared ? 0 : 12)
 
-                    Text("We'll save your chats so you can\ncontinue later.")
-                        .font(.system(size: 19, weight: .regular))
-                        .foregroundStyle(AppColors.onboardingWhite.opacity(0.95))
+                    Text(PreferencesManager.shared.label("fc_v2_app_label_well_save_your_chats_you_continue", fallback: "We'll save your chats so you can\ncontinue later."))
+                        .font(.system(size: 17, weight: .regular))
+                        .foregroundStyle(AppColors.white.opacity(0.9))
                         .multilineTextAlignment(.center)
                         .opacity(contentAppeared ? 1 : 0)
                 }
@@ -62,21 +66,22 @@ struct AccountBenefitsView: View {
 
                 Spacer(minLength: 16)
 
+                // Figma 5.2: CTA button — dark green bg, white text+chevron, full-width, 64pt height, radius 12pt
                 Button {
                     // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.accountBenefitScreenProceed, properties: nil, adjustToken: AnalyticsConstants.AdjustToken.accountBenefitScreenProceed)
                     proceedToAuth()
                 } label: {
                     HStack(spacing: 8) {
-                        Text("Sign up with phone number")
+                        Text(PreferencesManager.shared.label("fc_v2_app_label_sign_up_phone_number", fallback: "Sign up with phone number"))
                             .font(AppTypography.onboardingButtonText())
                         Image(systemName: "chevron.right")
                             .font(.system(size: 14, weight: .bold))
                     }
-                    .foregroundStyle(AppColors.onboardingWhite)
+                    .foregroundStyle(AppColors.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 64)
                     .background(benefitsButtonDark)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .smoothCorner(Radius.md)
                 }
                 .buttonStyle(ScaleButtonStyle())
                 .opacity(contentAppeared ? 1 : 0)

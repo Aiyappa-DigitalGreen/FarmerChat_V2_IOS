@@ -115,14 +115,14 @@ struct TipsCarousel: View {
             TabView(selection: $currentIndex) {
                 ForEach(Array(tips.enumerated()), id: \.offset) { idx, tip in
                     TipCard(title: tip.title, bodyText: tip.body, showIcon: showIcon)
-                        .padding(.horizontal, 24)
                         .tag(idx)
                 }
             }
             #if os(iOS)
             .tabViewStyle(.page(indexDisplayMode: .never))
             #endif
-            .frame(height: 110)
+            .allowsHitTesting(false)
+            .frame(height: 90)
 
             TipPaginationIndicator(
                 pageCount: tips.count,
@@ -164,11 +164,11 @@ private struct TipCard: View {
             if showIcon {
                 ZStack {
                     Circle()
-                        .fill(BrandColors.feedbackSuccess)
+                        .fill(AppColors.green500)
                         .frame(width: 36, height: 36)
-                    Image(systemName: "lightbulb")
+                    Image(systemName: "lightbulb.fill")
                         .font(.system(size: 18, weight: .regular))
-                        .foregroundStyle(AppColors.white)
+                        .foregroundStyle(.white)
                 }
             }
             VStack(alignment: .leading, spacing: 6) {
@@ -185,7 +185,7 @@ private struct TipCard: View {
         .padding(.vertical, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(ContentColors.surfaceActive)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -199,16 +199,16 @@ private struct TipPaginationIndicator: View {
             ForEach(0..<pageCount, id: \.self) { idx in
                 if idx == currentPage {
                     ZStack(alignment: .leading) {
-                        Capsule().fill(ContentColors.surfaceActive)
-                            .frame(width: 24, height: 8)
-                        Capsule().fill(BrandColors.feedbackSuccess)
-                            .frame(width: 24 * progress, height: 8)
+                        Capsule().fill(AppColors.adaptiveFill)
+                            .frame(width: 24, height: 6)
+                        Capsule().fill(AppColors.green500)
+                            .frame(width: 24 * progress, height: 6)
                     }
-                    .frame(width: 24, height: 8)
+                    .frame(width: 24, height: 6)
                 } else {
                     Circle()
-                        .fill(ContentColors.surfaceActive)
-                        .frame(width: 8, height: 8)
+                        .fill(AppColors.adaptiveFill)
+                        .frame(width: 6, height: 6)
                 }
             }
         }

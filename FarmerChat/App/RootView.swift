@@ -56,20 +56,19 @@ struct RootView: View {
                     .environment(navigator)
             }
         }
-        .overlay(alignment: .top) {
-            BrandColors.surfacePrimary
-                .frame(height: 0)
-                .ignoresSafeArea(edges: .top)
+        .overlay {
+            if navigator.rootDestination == .home && navigator.showDrawer {
+                AppDrawer(isPresented: Binding(
+                    get: { navigator.showDrawer },
+                    set: { navigator.showDrawer = $0 }
+                ))
+                .environment(navigator)
+                .transition(.move(edge: .leading))
+            }
         }
+        .animation(.easeInOut(duration: 0.25), value: navigator.showDrawer)
         .sheet(item: Binding(get: { navigator.presentedSheet }, set: { navigator.presentedSheet = $0 })) { dest in
             sheetContent(dest)
-        }
-        .sheet(isPresented: Binding(
-            get: { navigator.rootDestination == .home && navigator.showDrawer },
-            set: { navigator.showDrawer = $0 }
-        )) {
-            AppDrawer(isPresented: Binding(get: { navigator.showDrawer }, set: { navigator.showDrawer = $0 }))
-                .environment(navigator)
         }
         .sheet(isPresented: Binding(
             get: { errorManager.currentError != nil },
@@ -150,7 +149,7 @@ extension AppDestination: @retroactive Identifiable {
         case .language: return "language"
         case .enterName: return "enterName"
         case .home: return "home"
-        case .chat(_, _, _, _, _, _, _, _, _): return "chat"
+        case .chat(_, _, _, _, _, _, _, _, _, _): return "chat"
         case .chatHistory: return "chatHistory"
         case .settings: return "settings"
         case .settingsName: return "settingsName"

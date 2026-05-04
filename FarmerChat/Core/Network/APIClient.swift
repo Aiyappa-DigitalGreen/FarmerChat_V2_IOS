@@ -153,11 +153,13 @@ actor APIClient {
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
-        req.setValue(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0", forHTTPHeaderField: "Build-Version")
+        req.setValue("v2", forHTTPHeaderField: "Build-Version")
         req.setValue(encodedDeviceInfo(), forHTTPHeaderField: "Device-Info")
-        if let lang = preferences.selectedLanguageCode, !lang.isEmpty {
-            req.setValue(lang, forHTTPHeaderField: ApiConstants.headerLanguage)
-        }
+        // Always set Accept-Language explicitly — prevents URLSession from auto-injecting
+        // the device system-locale header (e.g. "en-IN, en-GB;q=0.9, kn;q=0.7") which the
+        // server's set_preferred_language view tries to look up in the DB and throws 500.
+        let langCode = preferences.selectedLanguageCode ?? ""
+        req.setValue(langCode.isEmpty ? "en" : langCode, forHTTPHeaderField: ApiConstants.headerLanguage)
 
         if !skipAuth, let t = token() {
             req.setValue("Bearer \(t)", forHTTPHeaderField: ApiConstants.headerAuth)
@@ -173,6 +175,7 @@ actor APIClient {
         let requestBodyStr = req.httpBody.flatMap { String(data: $0, encoding: .utf8) } ?? ""
         os_log(.default, log: apiLog, "--> %{public}@ %{public}@", method, fullURL)
         print("[API] REQUEST \(method) \(fullURL)")
+
         if !requestBodyStr.isEmpty {
             let truncated = requestBodyStr.count > 2000 ? String(requestBodyStr.prefix(2000)) + "…" : requestBodyStr
             os_log(.default, log: apiLog, "[API] REQUEST BODY: %{public}@", truncated)
@@ -339,14 +342,11 @@ actor APIClient {
             build_version: build,
             platform: "ios"
         )
-        let _ = try await request(path: "api/user/v2/update_build_version/", method: "POST", body: body, skipAuth: token() == nil)
+        let _ = try await request(path: "api/user/v2/update_build_version/", method: "PATCH", body: body, skipAuth: token() == nil)
     }
 
     func setPreferredLanguage(languageId: String) async throws {
-        guard let id = Int(languageId) else {
-            throw APIError.server(400, "Invalid language id: \(languageId)")
-        }
-        let body = SetPreferredLanguageRequest(languageId: id, userId: userId())
+        let body = SetPreferredLanguageRequest(languageId: languageId, userId: userId())
         let _ = try await request(path: "api/user/set_preferred_language/", method: "POST", body: body, skipAuth: token() == nil)
     }
 
@@ -480,7 +480,7 @@ actor APIClient {
         let code = countryCode ?? preferences.userCountryCode ?? Locale.current.region?.identifier ?? "IN"
         let (data, _) = try await request(
             path: "api/language/v2/country_wise_supported_languages/",
-            query: ["country_code": code, "state": state],
+            query: ["country_code": code, "state": state, "priority_view": "true"],
             skipAuth: token() == nil
         )
         return try JSONDecoder().decode([SupportedLanguageGroup].self, from: data)

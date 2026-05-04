@@ -25,6 +25,9 @@ final class AppNavigator {
     var presentedError: ErrorEvent?
     var presentedSheet: AppDestination?
     var showDrawer = false
+    /// Tracks which destination was last navigated to via the side drawer, so the drawer
+    /// can highlight the correct row when re-opened. Cleared when returning to Home.
+    var lastDrawerSelection: AppDestination? = nil
     /// Transient image captured on Home screen, consumed by ChatView on next navigation.
     var pendingImage: UIImage?
 
@@ -157,17 +160,20 @@ final class AppNavigator {
         newPath.append(destination)
         path = newPath
         drawerPathVersion += 1
+        lastDrawerSelection = destination
     }
 
     func popToRoot() {
         path = NavigationPath()
         rootDestination = .home
+        lastDrawerSelection = nil
     }
 
     func popToHome() {
         path = NavigationPath()
         rootDestination = .home
         homeRefreshTrigger += 1
+        lastDrawerSelection = nil
     }
 
     func setRoot(_ destination: AppDestination) {

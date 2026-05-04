@@ -30,8 +30,8 @@ struct SettingsNameView: View {
     var body: some View {
         VStack(spacing: 0) {
             DefaultAppBar(
-                title: "Name",
-                leftIcon: "chevron.left",
+                title: PreferencesManager.shared.label("fc_v2_app_label_name", fallback: "Name"),
+                leftIcon: "arrow.backward",
                 onLeft: { dismiss() }
             )
 
@@ -39,8 +39,8 @@ struct SettingsNameView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     FormTextInput(
                         text: $name,
-                        placeholder: "Enter your name",
-                        label: "Your name or nickname",
+                        placeholder: PreferencesManager.shared.label("fc_v2_app_label_enter_your_name", fallback: "Enter your name"),
+                        label: PreferencesManager.shared.label("fc_v2_app_label_your_name_or_nickname", fallback: "Your name or nickname"),
                         state: isLoading ? .disabled : .active,
                         autocapitalization: .words,
                         isFocused: isFocused
@@ -52,7 +52,7 @@ struct SettingsNameView: View {
                     }
 
                     PrimaryButton(
-                        label: isLoading ? "Saving" : "Save name",
+                        label: isLoading ? PreferencesManager.shared.label("fc_v2_app_label_saving", fallback: "Saving") : PreferencesManager.shared.label("fc_v2_app_label_save_name", fallback: "Save name"),
                         state: primaryState,
                         height: 56,
                         isEnabled: buttonEnabled && !isLoading,
@@ -83,12 +83,12 @@ struct SettingsNameView: View {
         let n = trimmed
         if n.count < 3 {
             toastState = .error
-            toastMessage = "Name must be at least 3 characters"
+            toastMessage = "\(PreferencesManager.shared.label("fc_v2_app_label_name_must_be_at_least", fallback: "Name must be at least")) 3 \(PreferencesManager.shared.label("fc_v2_app_label_characters", fallback: "characters"))"
             return
         }
         if n.count > 100 {
             toastState = .error
-            toastMessage = "Name must be at most 100 characters"
+            toastMessage = "\(PreferencesManager.shared.label("fc_v2_app_label_name_must_be_at_most", fallback: "Name must be at most")) 100 \(PreferencesManager.shared.label("fc_v2_app_label_characters", fallback: "characters"))"
             return
         }
         isLoading = true

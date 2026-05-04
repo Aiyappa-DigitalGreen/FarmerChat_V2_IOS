@@ -25,6 +25,7 @@ struct DefaultAppBar: View {
     var onRightLabel: (() -> Void)? = nil
     var background: Color = BrandColors.surfacePrimary
     var foreground: Color = BrandColors.foregroundPrimary
+    var iconBackground: Color? = nil
 
     var body: some View {
         ZStack {
@@ -70,7 +71,7 @@ struct DefaultAppBar: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(foreground)
                     .frame(width: 42, height: 42)
-                    .background(foreground.opacity(0.12))
+                    .background(iconBackground ?? AppColors.authButtonDarkGreen)
                     .smoothCorner(Radius.md)
             }
             .buttonStyle(.plain)
@@ -222,6 +223,7 @@ struct PrimaryButton: View {
     var icon: String? = nil
     var iconPosition: IconPosition = .leading
     var isEnabled: Bool = true
+    var surface: Color = ContentColors.buttonPrimarySurface
     var action: () -> Void
 
     var body: some View {
@@ -241,6 +243,7 @@ struct PrimaryButton: View {
                     if state == .chevron {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(ContentColors.buttonPrimaryForeground)
                     } else if let icon = icon, iconPosition == .trailing {
                         Image(systemName: icon)
                             .font(.system(size: 18, weight: .semibold))
@@ -251,7 +254,7 @@ struct PrimaryButton: View {
             .padding(.horizontal, state == .chevron || iconPosition == .trailing ? 16 : 24)
             .frame(maxWidth: .infinity)
             .frame(height: height)
-            .background(ContentColors.buttonPrimarySurface)
+            .background(surface)
             .smoothCorner(Radius.md)
         }
         .buttonStyle(ScaleButtonStyle())
@@ -268,6 +271,8 @@ struct SecondaryButton: View {
     var icon: String? = nil
     var iconPosition: IconPosition = .leading
     var isEnabled: Bool = true
+    var background: Color = BrandColors.surfaceSecondary
+    var foreground: Color = BrandColors.foregroundPrimary
     var action: () -> Void
 
     var body: some View {
@@ -284,11 +289,11 @@ struct SecondaryButton: View {
                         .font(.system(size: 18, weight: .semibold))
                 }
             }
-            .foregroundStyle(BrandColors.foregroundPrimary)
+            .foregroundStyle(foreground)
             .padding(.horizontal, 24)
             .frame(maxWidth: .infinity)
             .frame(height: height)
-            .background(BrandColors.surfaceSecondary)
+            .background(background)
             .smoothCorner(Radius.md)
         }
         .buttonStyle(ScaleButtonStyle())
@@ -708,6 +713,7 @@ struct ListItem: View {
                         .frame(height: 1)
                 }
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .disabled(action == nil)
@@ -726,6 +732,9 @@ struct LogoSpinner: View {
     var type: LogoSpinnerType = .vertical
     var color: Color = AppColors.green500
     var label: String? = nil
+    /// When true: steady linear rotation with no pause (use for in-progress states like "Getting your answer").
+    /// When false (default): 3-second idle pause then a quick burst spin.
+    var continuous: Bool = false
 
     @State private var rotation: Double = 0
     @State private var rotationTask: Task<Void, Never>? = nil
@@ -780,11 +789,21 @@ struct LogoSpinner: View {
     private func startRotation() {
         rotationTask?.cancel()
         rotationTask = Task { @MainActor in
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 3_000_000_000)
-                if Task.isCancelled { return }
-                withAnimation(.easeOut(duration: 0.6)) { rotation += 360 }
-                try? await Task.sleep(nanoseconds: 600_000_000)
+            if continuous {
+                // Steady linear spin: sleep slightly shorter than the animation so each
+                // new animation begins just before the previous one ends — no gap.
+                while !Task.isCancelled {
+                    withAnimation(.linear(duration: 0.85)) { rotation += 360 }
+                    try? await Task.sleep(nanoseconds: 800_000_000)
+                }
+            } else {
+                // Burst mode: 3-second idle pause, then a quick easeOut spin.
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    if Task.isCancelled { return }
+                    withAnimation(.easeOut(duration: 0.6)) { rotation += 360 }
+                    try? await Task.sleep(nanoseconds: 600_000_000)
+                }
             }
         }
     }
@@ -886,7 +905,7 @@ struct Glow: View {
     private var assetName: String { type == .green ? "glow_green" : "glow_yellow" }
 
     private var fallbackColor: Color {
-        type == .green ? AppColors.green500.opacity(0.35) : AppColors.sun300.opacity(0.50)
+        type == .green ? AppColors.green500.opacity(0.25) : AppColors.sun300.opacity(0.30)
     }
 
     var body: some View {
@@ -900,7 +919,7 @@ struct Glow: View {
                 colors: [fallbackColor, .clear],
                 center: .top,
                 startRadius: 0,
-                endRadius: 220
+                endRadius: 80
             )
         }
         #else
@@ -908,7 +927,7 @@ struct Glow: View {
             colors: [fallbackColor, .clear],
             center: .top,
             startRadius: 0,
-            endRadius: 220
+            endRadius: 80
         )
         #endif
     }
@@ -1128,6 +1147,7 @@ struct FullScreenMessage: View {
             label: primaryCtaLabel,
             state: state,
             height: 64,
+            surface: BrandColors.buttonPrimarySurface,
             action: {
                 guard !(enableDebounce && isDebouncing) else { return }
                 if enableDebounce { isDebouncing = true }

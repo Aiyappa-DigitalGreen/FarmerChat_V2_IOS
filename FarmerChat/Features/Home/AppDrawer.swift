@@ -21,7 +21,7 @@ private let iconSizeSmall: CGFloat = 18
 
 private let drawerBackground = Color(hex: 0xFF08361B)
 private let drawerRowBackground = Color(hex: 0xFF0D4A23)
-private let drawerSeeAllGreen = Color(hex: 0xFF006F35)
+private let drawerSeeAllGreen = Color(hex: 0xFF008236)
 private let drawerSignUpGreen = Color(hex: 0xFF389B3D)
 private let drawerForegroundPrimary = AppColors.white
 private let drawerForegroundSecondary = AppColors.white.opacity(0.9)
@@ -80,22 +80,22 @@ struct AppDrawer: View {
                 .padding(.bottom, 20)
 
             VStack(spacing: 4) {
-                drawerRow(icon: "house.fill", label: "Home", selected: isCurrentRouteHome) {
+                drawerRow(icon: "house.fill", label: prefs.label("fc_v2_app_label_home", fallback: "Home"), selected: isCurrentRouteHome) {
                     // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.menuOptionClickEvent, properties: [AnalyticsConstants.Property.optionKey: "home"], adjustToken: AnalyticsConstants.AdjustToken.menuOptionClickEvent)
                     navigator.popToHome()
                     isPresented = false
                 }
-                drawerRow(icon: "globe", label: "Language (\(currentLanguageLabel))", selected: isCurrentRouteLanguage) {
+                drawerRow(icon: "globe", label: "\(prefs.label("fc_v2_app_label_language", fallback: "Language")) (\(currentLanguageLabel))", selected: isCurrentRouteLanguage) {
                     // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.menuOptionClickEvent, properties: [AnalyticsConstants.Property.optionKey: "settings/language"], adjustToken: AnalyticsConstants.AdjustToken.menuOptionClickEvent)
                     navigator.navigateDrawerRoute(.settingsLanguage)
                     isPresented = false
                 }
-                drawerRow(icon: "gearshape.fill", label: "Settings", selected: isCurrentRouteSettings) {
+                drawerRow(icon: "gearshape.fill", label: prefs.label("fc_v2_app_label_settings", fallback: "Settings"), selected: isCurrentRouteSettings) {
                     // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.menuOptionClickEvent, properties: [AnalyticsConstants.Property.optionKey: "settings"], adjustToken: AnalyticsConstants.AdjustToken.menuOptionClickEvent)
                     navigator.navigateDrawerRoute(.settings)
                     isPresented = false
                 }
-                drawerRow(icon: "questionmark.circle.fill", label: "Help & Support", selected: isCurrentRouteHelp) {
+                drawerRow(icon: "questionmark.circle.fill", label: prefs.label("fc_v2_app_label_help_support", fallback: "Help & Support"), selected: isCurrentRouteHelp) {
                     // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.menuOptionClickEvent, properties: [AnalyticsConstants.Property.optionKey: "help"], adjustToken: AnalyticsConstants.AdjustToken.menuOptionClickEvent)
                     navigator.navigateDrawerRoute(.help)
                     isPresented = false
@@ -141,7 +141,7 @@ struct AppDrawer: View {
             HStack(spacing: 12) {
                 Image(systemName: icon)
                     .font(.system(size: 20))
-                    .foregroundStyle(drawerForegroundPrimary)
+                    .foregroundStyle(AppColors.accentGreen)
                     .frame(width: iconSize, height: iconSize)
                 Text(label)
                     .font(AppTypography.labelMedium())
@@ -161,20 +161,28 @@ struct AppDrawer: View {
 
     private var recentChatsSection: some View {
         VStack(spacing: 0) {
+            // Section header always visible — present during loading, error, and populated states.
+            Text(prefs.label("fc_v2_app_label_past_advice", fallback: "Past Advice"))
+                .font(AppTypography.labelLarge())
+                .foregroundStyle(drawerForegroundPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 22)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
+
             if case .loading = historyState {
                 VStack(spacing: 12) {
-                    ProgressView()
-                        .tint(drawerForegroundPrimary)
-                    Text("Loading chats…")
-                        .font(AppTypography.bodySmall())
+                    LogoSpinner(type: .vertical, continuous: true)
+                    Text(prefs.label("fc_v2_app_label_loading_chats", fallback: "Loading chats…"))
+                        .font(AppTypography.labelMedium())
                         .foregroundStyle(drawerForegroundSecondary)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
+                .padding(.vertical, 32)
             } else if case .error(let msg) = historyState {
                 errorRetryView(message: msg)
             } else if historyItems.isEmpty {
-                Text("No chats yet.")
+                Text(prefs.label("fc_v2_app_label_no_chats_yet", fallback: "No chats yet."))
                     .font(AppTypography.bodyMedium())
                     .foregroundStyle(drawerForegroundPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -184,13 +192,6 @@ struct AppDrawer: View {
                 ZStack(alignment: .bottom) {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Recent chats")
-                                .font(AppTypography.titleMedium())
-                                .foregroundStyle(drawerForegroundPrimary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 22)
-                                .padding(.top, 12)
-                                .padding(.bottom, 2)
 
                             ForEach(Array(historyItems.prefix(8).enumerated()), id: \.offset) { idx, item in
                                 recentChatRow(item: item, index: idx)
@@ -214,7 +215,7 @@ struct AppDrawer: View {
                             Task { await navigateToChatHistoryIfOnline() }
                         } label: {
                             HStack(spacing: 6) {
-                                Text("See all")
+                                Text(prefs.label("fc_v2_app_label_see_all", fallback: "See all"))
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 14, weight: .bold))
                             }
@@ -260,6 +261,15 @@ struct AppDrawer: View {
         }
     }
 
+    private static func drawerMessageIcon(_ type: String?) -> String {
+        switch type?.lowercased() {
+        case "image": return "camera.fill"
+        case "audio", "voice": return "mic.fill"
+        case "text": return "keyboard"
+        default: return "bubble.left.fill"
+        }
+    }
+
     private func recentChatRow(item: ConversationListItem, index: Int) -> some View {
         Button {
             let cid = item.displayId.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -272,7 +282,7 @@ struct AppDrawer: View {
             isPresented = false
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: "doc.text.fill")
+                Image(systemName: Self.drawerMessageIcon(item.message_type))
                     .font(.system(size: iconSizeSmall))
                     .foregroundStyle(AppColors.accentGreen)
                     .frame(width: iconSizeSmall + 4, height: iconSizeSmall + 4)
@@ -292,15 +302,15 @@ struct AppDrawer: View {
 
     private func errorRetryView(message: String) -> some View {
         VStack(spacing: 12) {
-            Text(message.contains("network") || message.contains("internet") ? "No internet connection" : "Failed to load chats")
+            Text(message.contains("network") || message.contains("internet") ? prefs.label("fc_v2_app_label_no_internet_connection", fallback: "No internet connection") : prefs.label("fc_v2_app_label_failed_to_load_chats", fallback: "Failed to load chats"))
                 .font(AppTypography.titleSmall())
                 .foregroundStyle(drawerForegroundSecondary)
                 .multilineTextAlignment(.center)
-            Text("Check your connection and try again")
+            Text(prefs.label("fc_v2_app_label_please_connect_internet_try_again", fallback: "Check your connection and try again"))
                 .font(AppTypography.bodySmall())
                 .foregroundStyle(drawerForegroundPrimary.opacity(0.7))
                 .multilineTextAlignment(.center)
-            Button("Try again") {
+            Button(prefs.label("fc_v2_app_label_try_again", fallback: "Try again")) {
                 Task { await loadHistory() }
             }
             .buttonStyle(PrimaryButtonStyle())
@@ -315,11 +325,11 @@ struct AppDrawer: View {
             Spacer()
             VStack(spacing: 16) {
                 VStack(spacing: 8) {
-                    Text("Save your past questions")
+                    Text(prefs.label("fc_v2_app_label_save_your_questions_answers", fallback: "Save your past questions"))
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(AppColors.accentGreen)
                         .multilineTextAlignment(.center)
-                    Text("Keep your answers\nand come back anytime")
+                    Text(prefs.label("fc_v2_app_label_well_save_your_chats_you_continue", fallback: "Keep your answers\nand come back anytime"))
                         .font(.system(size: 15, weight: .regular))
                         .foregroundStyle(drawerForegroundPrimary)
                         .multilineTextAlignment(.center)
@@ -329,7 +339,7 @@ struct AppDrawer: View {
                     isPresented = false
                 } label: {
                     HStack(spacing: 8) {
-                        Text("Sign up")
+                        Text(prefs.label("fc_v2_app_label_sign_up", fallback: "Sign up"))
                             .font(AppTypography.labelLarge())
                             .foregroundStyle(drawerForegroundPrimary)
                         Image(systemName: "chevron.right")
@@ -350,11 +360,24 @@ struct AppDrawer: View {
         .background(drawerBackground)
     }
 
-    /// Drawer is only presented from Home, so when visible we consider Home current.
-    private var isCurrentRouteHome: Bool { true }
-    private var isCurrentRouteLanguage: Bool { false }
-    private var isCurrentRouteSettings: Bool { false }
-    private var isCurrentRouteHelp: Bool { false }
+    private var isCurrentRouteHome: Bool {
+        navigator.path.isEmpty && navigator.lastDrawerSelection == nil
+    }
+    private var isCurrentRouteLanguage: Bool {
+        guard !navigator.path.isEmpty, let sel = navigator.lastDrawerSelection else { return false }
+        if case .settingsLanguage = sel { return true }
+        return false
+    }
+    private var isCurrentRouteSettings: Bool {
+        guard !navigator.path.isEmpty, let sel = navigator.lastDrawerSelection else { return false }
+        if case .settings = sel { return true }
+        return false
+    }
+    private var isCurrentRouteHelp: Bool {
+        guard !navigator.path.isEmpty, let sel = navigator.lastDrawerSelection else { return false }
+        if case .help = sel { return true }
+        return false
+    }
 
     private func loadHistory() async {
         historyState = .loading

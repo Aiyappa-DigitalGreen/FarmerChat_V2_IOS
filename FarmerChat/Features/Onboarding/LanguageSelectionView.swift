@@ -8,10 +8,6 @@
 
 import SwiftUI
 
-/// LANGUAGE_SCREEN.md §12 / UI_LANGUAGE.md §3 — first N languages on main screen;
-/// the rest appear in AllLanguagesSelectionView.
-private let languagePreviewLimit = 5
-
 struct LanguageSelectionView: View {
     @Environment(AppNavigator.self) private var navigator
     @State private var viewModel: LanguageSelectionViewModel
@@ -31,13 +27,13 @@ struct LanguageSelectionView: View {
                         .frame(width: 32, height: 32)
                         .padding(.top, 32)
 
-                    Text("Choose your language")
+                    Text(PreferencesManager.shared.label("fc_v2_app_label_choose_your_language", fallback: "Choose your language"))
                         .font(AppTypography.titleLarge())
                         .foregroundStyle(ContentColors.foregroundPrimary)
                         .multilineTextAlignment(.center)
                         .padding(.top, 14)
 
-                    Text("You can change this later")
+                    Text(PreferencesManager.shared.label("fc_v2_app_label_you_change_later", fallback: "You can change this later"))
                         .font(AppTypography.bodyMedium())
                         .foregroundStyle(ContentColors.foregroundSecondary)
                         .multilineTextAlignment(.center)
@@ -57,8 +53,8 @@ struct LanguageSelectionView: View {
         }
         .background(ContentColors.surfacePrimary)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(isPresented: $showAllLanguages) {
-            AllLanguagesSelectionView(viewModel: viewModel, onSelect: {})
+        .fullScreenCover(isPresented: $showAllLanguages) {
+            AllLanguagesSelectionView(viewModel: viewModel)
         }
         .task { await viewModel.loadLanguages() }
     }
@@ -68,14 +64,14 @@ struct LanguageSelectionView: View {
     private var contentArea: some View {
         switch viewModel.languageState {
         case .idle, .loading:
-            LogoSpinner(type: .vertical, label: "Loading languages...")
+            LogoSpinner(type: .vertical, label: PreferencesManager.shared.label("fc_v2_app_label_loading_languages", fallback: "Loading languages..."), continuous: true)
                 .padding(.vertical, 40)
         case .error:
-            LogoSpinner(type: .vertical, label: "Loading languages...")
+            LogoSpinner(type: .vertical, label: PreferencesManager.shared.label("fc_v2_app_label_loading_languages", fallback: "Loading languages..."), continuous: true)
                 .padding(.vertical, 40)
         case .success(let langs):
             LazyVStack(spacing: 6) {
-                ForEach(Array(langs.prefix(languagePreviewLimit)), id: \.id) { lang in
+                ForEach(langs, id: \.id) { lang in
                     SharedRadioButton(
                         label: lang.display_name,
                         isSelected: viewModel.selectedLanguageId == String(lang.id),
@@ -85,13 +81,18 @@ struct LanguageSelectionView: View {
                         }
                     )
                 }
-                if langs.count > languagePreviewLimit {
-                    SecondaryButton(
-                        label: "More languages",
-                        height: 54,
-                        action: { showAllLanguages = true }
-                    )
-                    .padding(.top, 6)
+                if !viewModel.expandedLanguages.isEmpty {
+                    Button(action: { showAllLanguages = true }) {
+                        Text(PreferencesManager.shared.label("fc_v2_app_label_all_languages", fallback: "All languages"))
+                            .font(AppTypography.labelLarge())
+                            .foregroundStyle(AppColors.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(AppColors.green800)
+                            .smoothCorner(Radius.rounded)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .padding(.top, 10)
                 }
             }
         }
@@ -100,14 +101,14 @@ struct LanguageSelectionView: View {
     /// UI_LANGUAGE.md §1 — bottom panel with 24pt top-rounded corners, surfaceSecondary bg.
     private var bottomPanel: some View {
         VStack(spacing: 20) {
-            Text("FarmerChat: Practical advice\nfor your crops & animals")
+            Text(PreferencesManager.shared.label("fc_v2_app_label_farmerchat_tagline", fallback: "FarmerChat: Practical advice\nfor your crops & animals"))
                 .font(AppTypography.titleLarge())
                 .foregroundStyle(ContentColors.foregroundPrimary)
                 .multilineTextAlignment(.center)
 
             let canSubmit = !viewModel.selectedLanguageId.isEmpty && !viewModel.isSubmitting
             PrimaryButton(
-                label: viewModel.isSubmitting ? "Saving…" : "Start using FarmerChat",
+                label: viewModel.isSubmitting ? PreferencesManager.shared.label("fc_v2_app_label_saving", fallback: "Saving…") : PreferencesManager.shared.label("fc_v2_app_label_start_using_farmerchat", fallback: "Start using FarmerChat"),
                 state: canSubmit ? .chevron : .default,
                 height: 56,
                 isEnabled: canSubmit,
@@ -136,24 +137,26 @@ struct LanguageSelectionView: View {
 
     private var legalText: some View {
         VStack(spacing: 2) {
-            Text("By continuing, you agree to our")
+            Text(PreferencesManager.shared.label("fc_v2_app_label_by_continuing_you_agree_to_our", fallback: "By continuing, you agree to our"))
                 .font(AppTypography.caption())
                 .foregroundStyle(ContentColors.foregroundSecondary)
             HStack(spacing: 4) {
                 if let terms = viewModel.legalLinks?.termsUrl, let url = URL(string: terms) {
-                    Button("Terms of Use") {
-                        navigator.navigate(to: .legalContent(url: url, title: "Terms of Use"))
+                    let termsLabel = PreferencesManager.shared.label("fc_v2_app_label_terms_of_use", fallback: "Terms of Use")
+                    Button(termsLabel) {
+                        navigator.navigate(to: .legalContent(url: url, title: termsLabel))
                     }
                     .font(AppTypography.caption())
                     .foregroundStyle(ContentColors.foregroundSecondary)
                     .underline()
                 }
-                Text("also see")
+                Text(PreferencesManager.shared.label("fc_v2_app_label_also_see", fallback: "also see"))
                     .font(AppTypography.caption())
                     .foregroundStyle(ContentColors.foregroundSecondary)
                 if let privacy = viewModel.legalLinks?.privacyUrl, let url = URL(string: privacy) {
-                    Button("Privacy Policy.") {
-                        navigator.navigate(to: .legalContent(url: url, title: "Privacy Policy"))
+                    let privacyLabel = PreferencesManager.shared.label("fc_v2_app_label_privacy_policy", fallback: "Privacy Policy")
+                    Button(privacyLabel + ".") {
+                        navigator.navigate(to: .legalContent(url: url, title: privacyLabel))
                     }
                     .font(AppTypography.caption())
                     .foregroundStyle(ContentColors.foregroundSecondary)
@@ -171,11 +174,11 @@ struct LanguageSelectionView: View {
 @Observable
 final class LanguageSelectionViewModel {
     var languageState: Loadable<[SupportedLanguage]> = .idle
+    var expandedLanguages: [SupportedLanguage] = []
     var selectedLanguageId = ""
     var searchText = ""
     var isSubmitting = false
     var legalLinks: (termsUrl: String?, privacyUrl: String?)?
-    private var allGroups: [SupportedLanguageGroup] = []
     private let authUseCase: AuthUseCase
     private let getSupportedLanguagesUseCase: GetSupportedLanguagesUseCase
     private let setPreferredLanguageUseCase: SetPreferredLanguageUseCase
@@ -194,10 +197,19 @@ final class LanguageSelectionViewModel {
         self.getHelpSupportUseCase = GetHelpSupportUseCase()
     }
 
+    var allLanguages: [SupportedLanguage] {
+        let priority = languageState.value ?? []
+        var seen = Set<Int>()
+        return (priority + expandedLanguages).filter { seen.insert($0.id).inserted }
+    }
+
     var filteredLanguages: [SupportedLanguage] {
-        let all = allGroups.flatMap { $0.languages ?? [] }
-        if searchText.isEmpty { return all }
-        return all.filter { $0.display_name.localizedCaseInsensitiveContains(searchText) || String($0.id).localizedCaseInsensitiveContains(searchText) || $0.code.localizedCaseInsensitiveContains(searchText) }
+        if searchText.isEmpty { return allLanguages }
+        return allLanguages.filter {
+            $0.display_name.localizedCaseInsensitiveContains(searchText)
+            || $0.name.localizedCaseInsensitiveContains(searchText)
+            || $0.code.localizedCaseInsensitiveContains(searchText)
+        }
     }
 
     private func ensureGuestUserId() async throws {
@@ -232,20 +244,31 @@ final class LanguageSelectionViewModel {
         do {
             // Per INITIALIZE_USER_API.md: initialize_user first (sets user_id/tokens + country_code), then fetch languages for that country.
             try await ensureGuestUserId()
+            // Android parity: LanguageScreen.kt calls updateBuildVersion via LaunchedEffect when screen loads.
+            // Gated by buildVersionApiCalled so it only fires once per install.
+            if !prefs.buildVersionApiCalled {
+                if let uid = prefs.userId, !uid.isEmpty {
+                    try? await APIClient().updateBuildVersion()
+                    await MainActor.run { prefs.buildVersionApiCalled = true }
+                }
+            }
             let groups = try await getSupportedLanguagesUseCase.execute(countryCode: prefs.userCountryCode)
-            allGroups = groups
-            let all = groups.flatMap { $0.languages ?? [] }
+            var seen1 = Set<Int>()
+            let priorityLangs = groups.flatMap { $0.priority_view ?? [] }.filter { seen1.insert($0.id).inserted }
+            var seen2 = Set<Int>()
+            let expandedLangs = groups.flatMap { $0.expanded_view ?? [] }.filter { seen2.insert($0.id).inserted }
+            let allLangs = priorityLangs + expandedLangs
             await MainActor.run {
-                languageState = .success(all)
-                if let first = all.first, selectedLanguageId.isEmpty {
+                languageState = .success(priorityLangs)
+                expandedLanguages = expandedLangs
+                if let first = priorityLangs.first, selectedLanguageId.isEmpty {
                     selectedLanguageId = String(first.id)
                 }
-                // Keep display name in sync when we have an id (e.g. from previous session)
-                if let id = prefs.selectedLanguageId, let lang = all.first(where: { String($0.id) == id }) {
+                if let id = prefs.selectedLanguageId, let lang = allLangs.first(where: { String($0.id) == id }) {
                     prefs.selectedLanguageDisplayName = lang.display_name
                 }
             }
-            print("[Language] loadLanguages() success, \(all.count) languages")
+            print("[Language] loadLanguages() success, \(priorityLangs.count) priority + \(expandedLangs.count) expanded")
             if let help = try? await getHelpSupportUseCase.execute(limit: 5) {
                 await MainActor.run {
                     legalLinks = (
@@ -283,16 +306,26 @@ final class LanguageSelectionViewModel {
             if let displayName = selected?.display_name {
                 // UserAttributeTracker.track(attributeName: AnalyticsConstants.UserAttribute.preferredLanguage, attributeValue: displayName)
             }
-            print("[Language] Calling getLabels(languageId: \(selectedLanguageId))...")
-            let labels = try await getLanguageLabelsUseCase.execute(languageId: selectedLanguageId)
-            prefs.languageLabels = labels
-            prefs.languageLabelsLoaded = true
-            print("[Language] getLabels() done, labels count: \(labels.count)")
             prefs.firstTimeOnboardingCompleted = false
             prefs.onboardingLanguageDone = true
             print("[Language] Calling onSuccess() to navigate...")
             await MainActor.run { onSuccess() }
             print("[Language] onSuccess() completed — should have navigated away")
+            // Fetch labels fire-and-forget (Android parity: getLanguageLabelsUseCase is launched in a
+            // separate viewModelScope.launch and never blocks navigation — errors are silently ignored)
+            let capturedLanguageId = selectedLanguageId
+            Task { [weak self] in
+                guard let self else { return }
+                do {
+                    print("[Language] Calling getLabels(languageId: \(capturedLanguageId))...")
+                    let labels = try await self.getLanguageLabelsUseCase.execute(languageId: capturedLanguageId)
+                    self.prefs.languageLabels = labels
+                    self.prefs.languageLabelsLoaded = true
+                    print("[Language] getLabels() done, labels count: \(labels.count)")
+                } catch {
+                    print("[Language] getLabels() failed (non-blocking): \(error)")
+                }
+            }
         } catch {
             print("[Language] Get started FAILED: \(error)")
             if let apiError = error as? APIError, case .server(let code, let body) = apiError {

@@ -8,6 +8,7 @@
 import SwiftUI
 #if canImport(UIKit)
 import UIKit
+import CoreText
 #endif
 
 // MARK: - Appearance Mode
@@ -240,32 +241,50 @@ enum BrandColors {
     static let scrim = AppColors.black.opacity(0.5)
 }
 
-// MARK: - Typography (match Android Type.kt approximate)
+// MARK: - Typography (matches Android Type.kt — Roboto Flex variable font)
 
 struct AppTypography {
-    // Display
-    static func displayLarge() -> Font { .system(size: 35, weight: .semibold) }
-    static func displayMedium() -> Font { .system(size: 28, weight: .semibold) }
-    static func displaySmall() -> Font { .system(size: 24, weight: .semibold) }
-    // Title
-    static func titleLarge() -> Font { .system(size: 22, weight: .bold) }
-    static func titleMedium() -> Font { .system(size: 18, weight: .bold) }
-    static func titleSmall() -> Font { .system(size: 16, weight: .bold) }
-    // Body
-    static func bodyLarge() -> Font { .system(size: 19, weight: .regular) }
-    static func bodyMedium() -> Font { .system(size: 17, weight: .regular) }
-    static func bodySmall() -> Font { .system(size: 15, weight: .regular) }
-    // Label
-    static func labelLarge() -> Font { .system(size: 17, weight: .medium) }
-    static func labelMedium() -> Font { .system(size: 15, weight: .medium) }
-    static func labelSmall() -> Font { .system(size: 13, weight: .medium) }
-    // Caption
-    static func caption() -> Font { .system(size: 13, weight: .regular) }
+    // Roboto Flex variable font with weight axis values matching Android Type.kt.
+    // wght FourCC tag = 0x77676874 = 2003265652.
+    // Falls back to system font if Roboto Flex is not registered.
+    #if canImport(UIKit)
+    private static func robotoFlex(size: CGFloat, weight: Int) -> Font {
+        let wghtTag = NSNumber(value: Int32(bitPattern: 0x77676874))
+        let variations: [NSNumber: NSNumber] = [wghtTag: NSNumber(value: Float(weight))]
+        let descriptor = UIFontDescriptor(name: "RobotoFlex-Regular", size: size)
+            .addingAttributes([
+                UIFontDescriptor.AttributeName(rawValue: kCTFontVariationAttribute as String): variations
+            ])
+        let uiFont = UIFont(descriptor: descriptor, size: size)
+        return Font(uiFont)
+    }
+    #else
+    private static func robotoFlex(size: CGFloat, weight: Int) -> Font { .system(size: size) }
+    #endif
 
-    // Onboarding design system (24–28px headings, 16–18px secondary, 16px button all-caps)
-    static func onboardingPrimaryHeading() -> Font { .system(size: 26, weight: .bold) }
-    static func onboardingSecondaryText() -> Font { .system(size: 17, weight: .regular) }
-    static func onboardingButtonText() -> Font { .system(size: 16, weight: .bold) }
+    // Display — weight 650
+    static func displayLarge() -> Font { robotoFlex(size: 35, weight: 650) }
+    static func displayMedium() -> Font { robotoFlex(size: 28, weight: 650) }
+    static func displaySmall() -> Font { robotoFlex(size: 24, weight: 650) }
+    // Title — weight 680
+    static func titleLarge() -> Font { robotoFlex(size: 22, weight: 680) }
+    static func titleMedium() -> Font { robotoFlex(size: 18, weight: 680) }
+    static func titleSmall() -> Font { robotoFlex(size: 16, weight: 680) }
+    // Body — weight 425
+    static func bodyLarge() -> Font { robotoFlex(size: 19, weight: 425) }
+    static func bodyMedium() -> Font { robotoFlex(size: 17, weight: 425) }
+    static func bodySmall() -> Font { robotoFlex(size: 15, weight: 425) }
+    // Label — weight 560
+    static func labelLarge() -> Font { robotoFlex(size: 17, weight: 560) }
+    static func labelMedium() -> Font { robotoFlex(size: 15, weight: 560) }
+    static func labelSmall() -> Font { robotoFlex(size: 13, weight: 560) }
+    // Caption — weight 425
+    static func caption() -> Font { robotoFlex(size: 13, weight: 425) }
+
+    // Onboarding
+    static func onboardingPrimaryHeading() -> Font { robotoFlex(size: 26, weight: 680) }
+    static func onboardingSecondaryText() -> Font { robotoFlex(size: 17, weight: 425) }
+    static func onboardingButtonText() -> Font { robotoFlex(size: 16, weight: 560) }
 }
 
 // MARK: - Components

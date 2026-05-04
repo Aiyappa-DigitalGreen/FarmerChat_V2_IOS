@@ -1001,7 +1001,7 @@ struct AcceptPPandTCResponse: Codable {
 }
 
 struct SetPreferredLanguageRequest: Codable {
-    let languageId: Int
+    let languageId: String
     let userId: String
 
     enum CodingKeys: String, CodingKey {
@@ -1019,16 +1019,20 @@ struct SetPreferredLanguageResponse: Codable {
 }
 
 struct SupportedLanguage: Codable {
+    let id: Int
+    let name: String
     let code: String
     let display_name: String
-    let id: Int
+    let country_phone_code: String?
+    let asr_enabled: Bool?
+    let tts_enabled: Bool?
 }
 
 struct SupportedLanguageGroup: Codable {
-    let languages: [SupportedLanguage]?
-    let group_name: String?
-    let country_code: String?
-    let state_code: String?
+    let display_name: String?
+    let flag: String?
+    let priority_view: [SupportedLanguage]?
+    let expanded_view: [SupportedLanguage]?
 }
 
 // LanguageLabelsResponse = [String: String] (decode in client)

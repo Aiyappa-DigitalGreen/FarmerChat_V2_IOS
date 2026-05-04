@@ -13,8 +13,8 @@ private let appBarHeight: CGFloat = 64
 private let inputButtonHeight: CGFloat = 78
 private let radiusMD: CGFloat = 12
 private let radiusLG: CGFloat = 16
-private let homeHeaderLightGreen = Color(hex: 0xFF08361B)
-private let homeCardGreen = Color(hex: 0xFF08361B)
+private let homeHeaderLightGreen = BrandColors.buttonPrimarySurface
+private let homeCardGreen = BrandColors.buttonPrimarySurface
 private let homeSelectionGreen = Color(hex: 0xFF00C950)
 
 struct HomeView: View {
@@ -22,8 +22,7 @@ struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var viewModel: HomeViewModel
     @State private var locationPromptManager = LocationPromptManager.shared
-    // UI_HOME.md §10 — loading-state alpha animations (400ms tween, NOT scroll-driven).
-    @State private var feedAlpha: Double = 0
+    @ObservedObject private var prefs = PreferencesManager.shared
     @State private var weatherAlpha: Double = 0
     @State private var showHomeVoice = false
     @State private var showHomeCamera = false
@@ -48,24 +47,24 @@ struct HomeView: View {
         #endif
     }
 
-    private var displayGreeting: String {
-        if let g = viewModel.greetingFromFeed, !g.isEmpty { return g }
-        let sanitized = EnterNameView.sanitizeNameForUi(viewModel.userName ?? "")
-        let name = sanitized.isEmpty ? "there" : sanitized
-        let timePart = viewModel.greetingTitle.lowercased()
-        return "\(name), how can we help you this \(timePart.replacingOccurrences(of: "good ", with: ""))?"
-    }
 
     var body: some View {
-        NavigationStack(path: Binding(get: { navigator.path }, set: { navigator.path = $0 })) {
-            content
-                .navigationTitle("")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar(.hidden, for: .navigationBar)
-                .toolbarColorScheme(.dark, for: .navigationBar)
-                .navigationDestination(for: AppDestination.self) { dest in
-                    destinationView(dest)
-                }
+        ZStack {
+            // Sits behind everything — fills the full screen including safe areas.
+            // NavigationStack content starts at the safe-area boundary, so the only
+            // region this green is visible is the status bar area above it.
+            BrandColors.surfacePrimary.ignoresSafeArea()
+
+            NavigationStack(path: Binding(get: { navigator.path }, set: { navigator.path = $0 })) {
+                content
+                    .navigationTitle("")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar(.hidden, for: .navigationBar)
+                    .toolbarColorScheme(.dark, for: .navigationBar)
+                    .navigationDestination(for: AppDestination.self) { dest in
+                        destinationView(dest)
+                    }
+            }
         }
         .id(navigator.drawerPathVersion)
         .overlay {
@@ -86,26 +85,21 @@ struct HomeView: View {
             await viewModel.load()
             // SDKEventHooks.requestPushPermissionOnHome()
         }
-        // UI_HOME.md §10 — feedAlpha + weatherAlpha driven by loading state (400ms tween).
-        // feedAlpha: 0 while screen is loading, 1 when done.
-        // weatherAlpha: 0 while screen OR weather is loading and no data yet, 1 otherwise.
         .onChange(of: viewModel.feedState.isLoading) { _, loading in
             withAnimation(.easeInOut(duration: 0.4)) {
-                feedAlpha = loading ? 0 : 1
                 let weatherLoading = viewModel.weatherState.isLoading
-                weatherAlpha = (loading || weatherLoading) ? 0 : (viewModel.weatherState.value != nil ? 1 : 0)
+                weatherAlpha = (loading || weatherLoading) ? 0 : 1
             }
         }
         .onChange(of: viewModel.weatherState.isLoading) { _, weatherLoading in
             withAnimation(.easeInOut(duration: 0.4)) {
                 let screenLoading = viewModel.feedState.isLoading
-                weatherAlpha = (screenLoading || weatherLoading) ? 0 : (viewModel.weatherState.value != nil ? 1 : 0)
+                weatherAlpha = (screenLoading || weatherLoading) ? 0 : 1
             }
         }
         .onAppear {
-            feedAlpha = viewModel.feedState.isLoading ? 0 : 1
             let isWeatherLoading = viewModel.weatherState.isLoading
-            weatherAlpha = (viewModel.feedState.isLoading || isWeatherLoading) ? 0 : (viewModel.weatherState.value != nil ? 1 : 0)
+            weatherAlpha = (viewModel.feedState.isLoading || isWeatherLoading) ? 0 : 1
         }
         .onAppear {
             if let (action, source) = navigator.consumePendingGpsCampaign() {
@@ -126,7 +120,7 @@ struct HomeView: View {
         // LOCATION_SCREEN.md §7 — campaign-sourced location update fires LocationUpdatedFromWidget;
         // show the "Location updated" toast and refetch the feed so any location-dependent cards refresh.
         .onReceive(NotificationCenter.default.publisher(for: LocationPromptManager.locationUpdatedFromWidgetNotification)) { _ in
-            viewModel.showToast("Location updated", isError: false)
+            viewModel.showToast(PreferencesManager.shared.label("fc_v2_app_label_location_updated", fallback: "Location updated"), isError: false)
             navigator.homeRefreshTrigger += 1
         }
         // Android parity: drawer/in-app nav must dismiss the Type input and any pending photo bar
@@ -178,7 +172,7 @@ struct HomeView: View {
             VoiceInputSheet(
                 onTranscribed: { result in
                     showHomeVoice = false
-                    navigator.navigate(to: .chat(question: result.text, transcriptionId: result.transcriptionId))
+                    navigator.navigate(to: .chat(question: result.text, transcriptionId: result.transcriptionId, audioFileURL: result.audioFileURL))
                 },
                 onError: { msg in
                     showHomeVoice = false
@@ -202,55 +196,73 @@ struct HomeView: View {
     private func navigateWithImage(_ image: UIImage, caption: String?) {
         let question = caption?.trimmingCharacters(in: .whitespacesAndNewlines)
         navigator.pendingImage = image
-        navigator.navigate(to: .chat(question: (question?.isEmpty ?? true) ? "What's wrong with my crop?" : question))
+        navigator.navigate(to: .chat(question: (question?.isEmpty ?? true) ? PreferencesManager.shared.label("fc_v2_app_label_what_is_wrong_with_my_crop", fallback: "What's wrong with my crop?") : question))
     }
 
     private var homeTextInputBar: some View {
-        VStack(spacing: 0) {
-            Divider()
-            HStack(spacing: 12) {
-                TextField("Type your question...", text: $homeInputText, axis: .vertical)
-                    .focused($isHomeInputFocused)
-                    .textFieldStyle(.plain)
-                    .font(AppTypography.bodyMedium())
-                    .padding(14)
-                    .background(AppColors.adaptiveSecondaryGroupedBackground)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(AppColors.adaptiveSeparator, lineWidth: 1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .lineLimit(1...4)
-                    .onAppear { isHomeInputFocused = true }
-
-                Button {
-                    let text = homeInputText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !text.isEmpty else { return }
-                    homeInputText = ""
-                    showHomeTextInput = false
-                    navigator.navigate(to: .chat(question: text))
-                } label: {
-                    Text("Send")
-                        .font(AppTypography.labelLarge())
-                        .foregroundStyle(AppColors.onboardingWhite)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 14)
-                        .background(homeCardGreen)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .disabled(homeInputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
+        let hasText = !homeInputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return HStack(spacing: 10) {
+            // Camera — hidden instantly when text is present (layout collapses, field expands)
+            if !hasText {
                 Button {
                     showHomeTextInput = false
                     homeInputText = ""
+                    showPhotoSourcePicker = true
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(AppColors.adaptiveSecondaryLabel)
+                    ZStack {
+                        Circle().fill(homeCardGreen).frame(width: 48, height: 48)
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundStyle(AppColors.accentGreen)
+                    }
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(AppColors.adaptiveSecondaryGroupedBackground)
+
+            TextField(prefs.label("fc_v2_app_label_ask_about_your_farm", fallback: "Ask about your farm..."), text: $homeInputText, axis: .vertical)
+                .focused($isHomeInputFocused)
+                .textFieldStyle(.plain)
+                .font(AppTypography.bodyMedium())
+                .lineLimit(1...4)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(ContentColors.surfacePrimary)
+                .clipShape(Capsule())
+                .onAppear { isHomeInputFocused = true }
+
+            // Mic (empty) → Send (typing)
+            Button {
+                let text = homeInputText.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !text.isEmpty {
+                    homeInputText = ""
+                    showHomeTextInput = false
+                    navigator.navigate(to: .chat(question: text))
+                } else {
+                    showHomeTextInput = false
+                    homeInputText = ""
+                    showHomeVoice = true
+                }
+            } label: {
+                ZStack {
+                    Circle().fill(homeCardGreen).frame(width: 48, height: 48)
+                    if hasText {
+                        Image("icon_send")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 20)
+                            .foregroundStyle(AppColors.accentGreen)
+                    } else {
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundStyle(AppColors.accentGreen)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color(.systemBackground))
         .transition(.move(edge: .bottom).combined(with: .opacity))
         .animation(.easeOut(duration: 0.2), value: showHomeTextInput)
     }
@@ -282,7 +294,7 @@ struct HomeView: View {
                 }
 
                 HStack(spacing: 10) {
-                    TextField("Ask about your farm...", text: $homePhotoCaption, axis: .vertical)
+                    TextField(prefs.label("fc_v2_app_label_ask_about_your_farm", fallback: "Ask about your farm..."), text: $homePhotoCaption, axis: .vertical)
                         .focused($isHomeCaptionFocused)
                         .textFieldStyle(.plain)
                         .font(AppTypography.bodyMedium())
@@ -296,12 +308,14 @@ struct HomeView: View {
                         homePhotoCaption = ""
                         navigateWithImage(img, caption: caption.isEmpty ? nil : caption)
                     } label: {
-                        Image(systemName: "arrow.up")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 40, height: 40)
-                            .background(AppColors.accentGreen)
-                            .clipShape(Circle())
+                        ZStack {
+                            Circle().fill(AppColors.accentGreen).frame(width: 40, height: 40)
+                            Image("icon_send")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 16)
+                                .foregroundStyle(.white)
+                        }
                     }
                     .buttonStyle(.plain)
                 }
@@ -341,16 +355,18 @@ struct HomeView: View {
                 inputButtonsRow
                 feedBody
             }
+            .frame(maxWidth: .infinity, minHeight: UIScreen.main.bounds.height, alignment: .top)
+            .background(ContentColors.surfacePrimary)
+            .background(ScrollBounceDisabler())
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(ContentColors.surfacePrimary.ignoresSafeArea())
+        .background(BrandColors.surfacePrimary.ignoresSafeArea(edges: .top))
     }
 
     // UI_HOME.md §4 — hamburger + weather, brand green slab + yellow Glow.
     // Scrolls away beneath the sticky input row.
     private var homeAppBarRow: some View {
         ZStack {
-            BrandColors.surfacePrimary
             Glow(type: .yellow)
                 .frame(height: 80)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -362,53 +378,58 @@ struct HomeView: View {
                     navigator.showDrawer = true
                 }
                 Spacer(minLength: 0)
+                if let img = UIImage(named: "LogoWordmark") {
+                    Image(uiImage: img)
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 20)
+                        .foregroundStyle(BrandColors.foregroundPrimary)
+                }
+                Spacer(minLength: 0)
                 weatherButtonHeader
             }
             .padding(.horizontal, 16)
         }
         .frame(height: 64)
+        // Extend the brand-green background up behind the status bar so iOS shows
+        // white status bar icons on the dark green surface (matching Figma).
+        .background(BrandColors.surfacePrimary.ignoresSafeArea(edges: .top))
     }
 
     // UI_HOME.md §3 — Crossfade(300ms) between GreetingSkeleton and the real text.
     // Wobble fires 1000ms after mount when the real greeting is showing.
     private var greetingStrip: some View {
-        ZStack {
+        let text = prefs.label(
+            "fc_v2_app_label_get_started_by_clicking_on_photo_speak_or_type_to_ask_your_question",
+            fallback: "Get started by clicking on Photo, Speak, or Type to ask your question"
+        )
+        return ZStack {
             BrandColors.surfacePrimary
-            VStack {
-                if viewModel.greetingFromFeed != nil || viewModel.userName != nil {
-                    Text(displayGreeting)
-                        .font(AppTypography.titleMedium())
-                        .foregroundStyle(BrandColors.foregroundPrimary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, 20)
-                        .transition(.opacity)
-                        .attentionWobble(trigger: true, delayMs: 1000)
-                } else {
-                    GreetingSkeleton()
-                        .frame(maxWidth: .infinity)
-                        .transition(.opacity)
-                }
-            }
-            .animation(.easeInOut(duration: 0.3), value: viewModel.greetingFromFeed)
+            Text(text)
+                .font(AppTypography.titleMedium())
+                .foregroundStyle(BrandColors.foregroundPrimary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 20)
         }
-        .frame(height: 56)
+        .frame(height: 48)
     }
 
     // UI_HOME.md §5 — sticky Photo/Speak/Type row. `pinnedViews` on the parent
     // LazyVStack pins this under the status bar when the feed scrolls up.
     private var inputButtonsRow: some View {
         HStack(spacing: 8) {
-            inputButton(icon: "camera.fill", label: "Photo") {
+            inputButton(icon: "camera.fill", label: prefs.label("fc_v2_app_label_photo", fallback: "Photo")) {
                 // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.chatIconClicked, properties: [AnalyticsConstants.Property.screenName: AnalyticsConstants.Screen.dashboardScreen, AnalyticsConstants.Property.icon: "Image"], adjustToken: AnalyticsConstants.AdjustToken.chatIconClicked)
                 showPhotoSourcePicker = true
             }
-            inputButton(icon: "mic.fill", label: "Speak") {
+            inputButton(icon: "mic.fill", label: prefs.label("fc_v2_app_label_speak", fallback: "Speak")) {
                 // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.microphoneClickEvent, properties: [AnalyticsConstants.Property.screenName: AnalyticsConstants.Screen.dashboardScreen], adjustToken: AnalyticsConstants.AdjustToken.microphoneClickEvent)
                 showHomeVoice = true
             }
-            inputButton(icon: "keyboard", label: "Type") {
+            inputButton(icon: "keyboard", label: prefs.label("fc_v2_app_label_type", fallback: "Type")) {
                 // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.chatIconClicked, properties: [AnalyticsConstants.Property.screenName: AnalyticsConstants.Screen.dashboardScreen, AnalyticsConstants.Property.icon: "Text"], adjustToken: AnalyticsConstants.AdjustToken.chatIconClicked)
                 showHomeTextInput = true
             }
@@ -425,35 +446,33 @@ struct HomeView: View {
         return locationPromptManager.state.isFetchingSilently
     }
 
-    // UI_HOME.md §1, §4 — feed loader | error | success body.
+    // UI_HOME.md §1, §4 — feed loader | error | success body. Matches Android: plain spinner while loading, content at full opacity when ready.
     @ViewBuilder
     private var feedBody: some View {
-        if viewModel.feedState.isLoading && viewModel.feedState.value == nil {
-            homeFeedLoader
-        } else if case .error = viewModel.feedState {
+        if case .error = viewModel.feedState {
             homeFeedErrorView
-        } else {
-            // UI_HOME.md §10 — feedAlpha fades the entire success body in/out on load state change.
+        } else if viewModel.feedState.value != nil {
             VStack(alignment: .leading, spacing: 0) {
-                FeedHeader(title: "For your farm today...")
-                    .attentionWobble(trigger: !viewModel.feedState.isLoading, delayMs: 1600)
+                FeedHeader(title: prefs.label("fc_v2_app_label_for_your_farm_today", fallback: "For your farm today..."))
+                    .attentionWobble(trigger: true, delayMs: 1600)
                 feedSectionCards
                     .padding(.horizontal, 16)
                     .padding(.bottom, 24)
-                FeedFooter(tagline: "Have a great day, come back tomorrow")
+                FeedFooter(tagline: prefs.label("fc_v2_app_label_have_a_great_day_come_back_tomorrow", fallback: "Have a great day, come back tomorrow"))
                     .padding(.horizontal, 24)
             }
-            .opacity(feedAlpha)
+        } else {
+            homeFeedLoader
         }
     }
 
     private var homeFeedLoader: some View {
         // UI_HOME.md §7 — widget-triggered GPS uses a different label.
         let label = locationPromptManager.state.isFetchingSilently
-            ? "Getting your location..."
-            : "Getting today's advice"
+            ? prefs.label("fc_v2_app_label_getting_your_location", fallback: "Getting your location...")
+            : prefs.label("fc_v2_app_label_getting_todays_advice", fallback: "Getting today's advice")
         return VStack(spacing: 12) {
-            LogoSpinner(type: .vertical, color: ContentColors.foregroundPrimary, label: label)
+            LogoSpinner(type: .vertical, color: AppColors.green500, label: label)
         }
         .frame(maxWidth: .infinity)
         .frame(minHeight: 420)
@@ -462,23 +481,35 @@ struct HomeView: View {
 
     private var homeFeedErrorView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "wifi.exclamationmark")
-                .font(.system(size: 44, weight: .regular))
-                .foregroundStyle(ContentColors.foregroundPrimary)
-            Text("Check your internet connection")
+            ZStack {
+                Circle()
+                    .fill(AppColors.red500)
+                    .frame(width: 64, height: 64)
+                Image(systemName: "xmark")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(AppColors.white)
+            }
+            Text(prefs.label("fc_v2_app_label_cant_load_right_now", fallback: "Can't load right now"))
                 .font(AppTypography.titleMedium())
                 .foregroundStyle(ContentColors.foregroundPrimary)
                 .multilineTextAlignment(.center)
-            PrimaryButton(
-                label: "Try again",
-                state: .chevron,
-                height: 56,
-                action: {
-                    // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.contentTryAgainClicked, properties: [AnalyticsConstants.Property.screenName: AnalyticsConstants.Screen.dashboardScreen], adjustToken: AnalyticsConstants.AdjustToken.contentTryAgainClicked)
-                    Task { await viewModel.load() }
+            Button {
+                // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.contentTryAgainClicked, properties: [AnalyticsConstants.Property.screenName: AnalyticsConstants.Screen.dashboardScreen], adjustToken: AnalyticsConstants.AdjustToken.contentTryAgainClicked)
+                Task { await viewModel.load() }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 14, weight: .medium))
+                    Text(prefs.label("fc_v2_app_label_try_again", fallback: "Try again"))
+                        .font(AppTypography.labelMedium())
                 }
-            )
-            .frame(maxWidth: 240)
+                .foregroundStyle(ContentColors.foregroundPrimary)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(AppColors.neutral200)
+                .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity)
         .frame(minHeight: 420)
@@ -491,7 +522,7 @@ struct HomeView: View {
             // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.weatherForecastViewed, properties: [AnalyticsConstants.Property.screenName: AnalyticsConstants.Screen.dashboardScreen], adjustToken: AnalyticsConstants.AdjustToken.weatherForecastViewed)
             guard locationPromptManager.state == .idle else { return }
             let weatherNav = {
-                navigator.navigate(to: .chat(question: "What is the present weather?", conversationId: nil, isWeatherAdviceCTA: true))
+                navigator.navigate(to: .chat(question: PreferencesManager.shared.label("fc_v2_app_label_what_is_the_present_weather", fallback: "What is the present weather?"), conversationId: nil, isWeatherAdviceCTA: true))
             }
             if !PreferencesManager.shared.isLocationEnabledOnce {
                 // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.locationUpdateTriggered, properties: [AnalyticsConstants.Property.screenName: AnalyticsConstants.Screen.dashboardScreen, AnalyticsConstants.Property.trigger: "Weather", AnalyticsConstants.Property.attempt: 1], adjustToken: AnalyticsConstants.AdjustToken.locationUpdateTriggered)
@@ -500,33 +531,55 @@ struct HomeView: View {
         } label: {
             Group {
                 if case .loading = viewModel.weatherState {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                        .tint(AppColors.onboardingWhite)
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(AppColors.green500)
+                            .frame(width: 7, height: 7)
+                        Text(prefs.label("fc_v2_app_label_loading", fallback: "Loading"))
+                            .font(AppTypography.labelMedium())
+                            .foregroundStyle(AppColors.onboardingWhite)
+                    }
                 } else if let w = viewModel.weatherState.value {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 6) {
+                        if let iconUrlStr = w.weather_icon, !iconUrlStr.isEmpty, let iconUrl = URL(string: iconUrlStr) {
+                            AsyncImage(url: iconUrl) { phase in
+                                if case .success(let img) = phase {
+                                    img.resizable().scaledToFit()
+                                } else {
+                                    Image("weather_sunclouds").resizable().scaledToFit()
+                                }
+                            }
+                            .frame(width: 22, height: 22)
+                        } else {
+                            Image("weather_sunclouds")
+                                .resizable().scaledToFit()
+                                .frame(width: 22, height: 22)
+                        }
                         Text(w.current_temp ?? "\(Int(w.current?.temp ?? 0))°")
                             .font(AppTypography.labelMedium())
                             .foregroundStyle(AppColors.onboardingWhite)
-                        Image(systemName: "chevron.up")
+                        Image(systemName: "chevron.right")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(AppColors.onboardingWhite)
+                            .foregroundStyle(AppColors.accentGreen)
                     }
                 } else {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image("weather_sunclouds")
+                            .resizable().scaledToFit()
+                            .frame(width: 22, height: 22)
                         Text("--°")
                             .font(AppTypography.labelMedium())
                             .foregroundStyle(AppColors.onboardingWhite)
-                        Image(systemName: "chevron.up")
+                        Image(systemName: "chevron.right")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(AppColors.onboardingWhite)
+                            .foregroundStyle(AppColors.accentGreen)
                     }
                 }
             }
-            .padding(.horizontal, 12)
-            .frame(height: 42)
+            .padding(.horizontal, 14)
+            .frame(height: 36)
             .background(homeHeaderLightGreen)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(Capsule())
         }
         .buttonStyle(.plain)
         .disabled(viewModel.weatherState.isLoading)
@@ -597,72 +650,61 @@ struct HomeView: View {
         let submitTitle = viewModel.submitButtonTitle(for: section)
         let isTagStyle = mode == .multi
         return VStack(alignment: .leading, spacing: 12) {
-            // UI_HOME.md §2 — explicit dismiss: delay(3000) then dismiss card.
             if !prompt.isEmpty {
-                HStack(alignment: .top, spacing: 8) {
-                    Text(prompt)
-                        .font(AppTypography.bodyMedium())
-                        .foregroundStyle(AppColors.adaptiveLabel)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Button {
-                        viewModel.scheduleDismissExplicit(section: section)
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(AppColors.adaptiveSecondaryLabel)
-                            .frame(width: 28, height: 28)
-                            .background(AppColors.adaptiveFill)
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isSubmitting)
-                }
+                Text(prompt)
+                    .font(AppTypography.bodyMedium())
+                    .foregroundStyle(AppColors.adaptiveLabel)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             if isTagStyle {
-                FlowLayout(spacing: 8) {
-                    ForEach(Array(options.enumerated()), id: \.offset) { _, option in
-                        let selected = viewModel.isSelected(section: section, option: option)
-                        Button {
-                            viewModel.toggleSelection(section: section, option: option)
-                        } label: {
-                            Text(option.displayText ?? option.text ?? "")
-                                .font(AppTypography.bodyMedium())
-                                .foregroundStyle(selected ? AppColors.onboardingWhite : AppColors.adaptiveLabel)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .background(selected ? homeCardGreen : AppColors.adaptiveFill)
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            } else {
-                VStack(spacing: 10) {
-                    ForEach(Array(options.enumerated()), id: \.offset) { _, option in
-                        let title = option.displayText ?? option.text ?? ""
-                        let selected = viewModel.isSelected(section: section, option: option)
-                        Button {
-                            viewModel.toggleSelection(section: section, option: option)
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: selectionIcon(isSelected: selected, mode: mode))
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundStyle(selected ? homeSelectionGreen : AppColors.adaptiveSecondaryLabel)
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 8) {
+                        ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                            let title = option.displayText ?? option.text ?? ""
+                            let selected = viewModel.isSelected(section: section, option: option)
+                            Button {
+                                viewModel.toggleSelection(section: section, option: option)
+                            } label: {
                                 Text(title)
                                     .font(AppTypography.bodyMedium())
-                                    .foregroundStyle(AppColors.adaptiveLabel)
-                                Spacer(minLength: 0)
+                                    .foregroundStyle(selected ? homeSelectionGreen : AppColors.adaptiveLabel)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 13)
+                                    .background(selected ? homeSelectionGreen.opacity(0.10) : AppColors.adaptiveFill)
+                                    .clipShape(Capsule())
+                                    .overlay(Capsule().stroke(selected ? homeSelectionGreen : Color.clear, lineWidth: 1.5))
                             }
-                            .padding(.horizontal, 14)
-                            .frame(height: 48)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(AppColors.adaptiveFill)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
+                .frame(maxHeight: 260)
+            } else {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 8) {
+                        ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                            let title = option.displayText ?? option.text ?? ""
+                            let selected = viewModel.isSelected(section: section, option: option)
+                            Button {
+                                viewModel.toggleSelection(section: section, option: option)
+                            } label: {
+                                Text(title)
+                                    .font(AppTypography.bodyMedium())
+                                    .foregroundStyle(selected ? homeSelectionGreen : AppColors.adaptiveLabel)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 13)
+                                    .background(selected ? homeSelectionGreen.opacity(0.10) : AppColors.adaptiveFill)
+                                    .clipShape(Capsule())
+                                    .overlay(Capsule().stroke(selected ? homeSelectionGreen : Color.clear, lineWidth: 1.5))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .frame(maxHeight: 260)
             }
 
             if showSubmit {
@@ -702,6 +744,7 @@ struct HomeView: View {
     }
 
     private func handleContentCardTap(section: SectionDto, question: String) {
+        let imageUrl = section.image_url
         Task {
             let statementId = section.statementIdString
             let cardType = section.type ?? "statement"
@@ -712,6 +755,7 @@ struct HomeView: View {
                         navigator.navigate(to: .chat(
                             question: question,
                             conversationId: nil,
+                            imageUri: imageUrl,
                             preGeneratedAnswer: res.answer,
                             followUpQuestions: res.followUps ?? [],
                             homeStatementId: sid
@@ -742,40 +786,17 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 0) {
                 if let imageURL {
                     ZStack(alignment: .topTrailing) {
-                        AsyncImage(url: imageURL) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 180)
-                                    .clipped()
-                            case .failure:
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.15))
-                                    .frame(height: 180)
-                                    .overlay(
-                                        Image(systemName: "photo")
-                                            .font(.title)
-                                            .foregroundStyle(.gray)
-                                    )
-                            default:
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.08))
-                                    .frame(height: 180)
-                                    .overlay(ProgressView())
-                            }
-                        }
+                        RetryableAsyncImage(url: imageURL, reloadId: navigator.homeRefreshTrigger)
 
                         if showBadge {
                             HStack(spacing: 4) {
                                 Image(systemName: "eye")
                                     .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(AppColors.accentGreen)
                                 Text(badgeCountString(badgeCount))
                                     .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(.white)
                             }
-                            .foregroundStyle(.white)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(Color.black.opacity(0.5))
@@ -799,6 +820,7 @@ struct HomeView: View {
                             .font(AppTypography.onboardingButtonText())
                         Image(systemName: "chevron.right")
                             .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(AppColors.accentGreen)
                         Spacer()
                     }
                     .foregroundStyle(AppColors.onboardingWhite)
@@ -816,6 +838,7 @@ struct HomeView: View {
             .shadow(color: .black.opacity(0.06), radius: 6, x: 0, y: 2)
         }
         .buttonStyle(.plain)
+        .contentShape(RoundedRectangle(cornerRadius: 20))
     }
 
     private func badgeCountString(_ count: Int) -> String {
@@ -850,9 +873,9 @@ struct HomeView: View {
 
     private func inputButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 26))
+                    .font(.system(size: 22))
                     .foregroundStyle(AppColors.onboardingWhite)
                 Text(label)
                     .font(AppTypography.labelSmall())
@@ -869,12 +892,13 @@ struct HomeView: View {
     @ViewBuilder
     private func destinationView(_ dest: AppDestination) -> some View {
         switch dest {
-        case .chat(_, let question, let conversationId, let imageUri, let transcriptionId, let preGeneratedAnswer, let followUpQuestions, let homeStatementId, let isWeatherAdviceCTA):
+        case .chat(_, let question, let conversationId, let imageUri, let transcriptionId, let audioFileURL, let preGeneratedAnswer, let followUpQuestions, let homeStatementId, let isWeatherAdviceCTA):
             ChatView(
                 question: question,
                 conversationId: conversationId,
                 imageUri: imageUri,
                 transcriptionId: transcriptionId,
+                audioFileURL: audioFileURL,
                 preGeneratedAnswer: preGeneratedAnswer,
                 followUpQuestions: followUpQuestions ?? [],
                 homeStatementId: homeStatementId,
@@ -1378,6 +1402,45 @@ private extension AnyCodable {
     }
 }
 
+// MARK: - Retryable image loader
+
+private struct RetryableAsyncImage: View {
+    let url: URL
+    let reloadId: Int
+    @State private var retryCount = 0
+
+    var body: some View {
+        AsyncImage(url: url) { phase in
+            switch phase {
+            case .success(let image):
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 180)
+                    .clipped()
+            case .failure:
+                Rectangle()
+                    .fill(Color.gray.opacity(0.08))
+                    .frame(height: 180)
+                    .overlay(ProgressView())
+                    .task(id: retryCount) {
+                        guard retryCount < 5 else { return }
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        retryCount += 1
+                    }
+            default:
+                Rectangle()
+                    .fill(Color.gray.opacity(0.08))
+                    .frame(height: 180)
+                    .overlay(ProgressView())
+            }
+        }
+        .id("\(url.absoluteString)-\(reloadId)-\(retryCount)")
+        .onChange(of: reloadId) { _, _ in retryCount = 0 }
+    }
+}
+
 // MARK: - Photo source picker (Home screen)
 
 private struct HomePhotoSourcePicker: View {
@@ -1392,7 +1455,7 @@ private struct HomePhotoSourcePicker: View {
                         Image(systemName: "camera")
                             .font(.system(size: 28))
                             .foregroundStyle(AppColors.adaptiveSecondaryLabel)
-                        Text("Camera")
+                        Text(PreferencesManager.shared.label("fc_v2_app_label_camera", fallback: "Camera"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(AppColors.adaptiveLabel)
                     }
@@ -1408,7 +1471,7 @@ private struct HomePhotoSourcePicker: View {
                         Image(systemName: "photo.on.rectangle")
                             .font(.system(size: 28))
                             .foregroundStyle(AppColors.adaptiveSecondaryLabel)
-                        Text("Photos")
+                        Text(PreferencesManager.shared.label("fc_v2_app_label_photos", fallback: "Photos"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(AppColors.adaptiveLabel)
                     }
@@ -1421,6 +1484,25 @@ private struct HomePhotoSourcePicker: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 20)
+        }
+    }
+}
+
+// MARK: - Scroll bounce disabler
+// Walks up the UIKit superview chain from inside the ScrollView to find the
+// UIScrollView and sets bounces = false, preventing the green rubber-band overscroll.
+private struct ScrollBounceDisabler: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView { UIView() }
+    func updateUIView(_ uiView: UIView, context: Context) {
+        DispatchQueue.main.async {
+            var v: UIView? = uiView.superview
+            while let candidate = v {
+                if let sv = candidate as? UIScrollView {
+                    sv.bounces = false
+                    return
+                }
+                v = candidate.superview
+            }
         }
     }
 }

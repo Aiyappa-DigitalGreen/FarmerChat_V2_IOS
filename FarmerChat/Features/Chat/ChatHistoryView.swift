@@ -13,7 +13,7 @@ struct ChatHistoryView: View {
         VStack(spacing: 0) {
             // UI_CHAT_HISTORY.md §1 — neutral DefaultAppBar, menu left, no right slot.
             DefaultAppBar(
-                title: "Recent Chats",
+                title: PreferencesManager.shared.label("fc_v2_app_label_past_advice", fallback: "Past Advice"),
                 leftIcon: "line.3.horizontal",
                 onLeft: { navigator.showDrawer = true }
             )
@@ -34,7 +34,7 @@ struct ChatHistoryView: View {
         if viewModel.isInitialLoading {
             VStack {
                 Spacer()
-                LogoSpinner(type: .vertical, label: "Loading chats...")
+                LogoSpinner(type: .vertical, label: PreferencesManager.shared.label("fc_v2_app_label_loading_chats", fallback: "Loading chats..."))
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -46,7 +46,7 @@ struct ChatHistoryView: View {
                 Image(systemName: "bubble.left.and.bubble.right")
                     .font(.system(size: 48))
                     .foregroundStyle(ContentColors.foregroundSecondary)
-                Text("No conversations yet")
+                Text(PreferencesManager.shared.label("fc_v2_app_label_no_chats_yet", fallback: "No conversations yet"))
                     .font(AppTypography.bodyMedium())
                     .foregroundStyle(ContentColors.foregroundSecondary)
                 Spacer()
@@ -66,12 +66,12 @@ struct ChatHistoryView: View {
     // Copy is fixed ("Couldn't load more chats") per spec, not the server message.
     private var paginationBanner: some View {
         VStack(spacing: 12) {
-            Text("Couldn't load more chats")
+            Text(PreferencesManager.shared.label("fc_v2_app_label_couldnt_load_more_chats", fallback: "Couldn't load more chats"))
                 .font(AppTypography.bodyMedium())
                 .foregroundStyle(ContentColors.foregroundSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
             PrimaryButton(
-                label: "Try again",
+                label: PreferencesManager.shared.label("fc_v2_app_label_try_again", fallback: "Try again"),
                 state: .chevron,
                 height: 56,
                 icon: "chevron.right",
@@ -89,7 +89,7 @@ struct ChatHistoryView: View {
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(sections) { section in
-                    // §1 — section title (labelLarge) with top 12 / bottom 8 padding.
+                    // Section title — labelLarge/bold, matching Android ChatHistoryScreen.
                     Text(section.title)
                         .font(AppTypography.labelLarge())
                         .foregroundStyle(ContentColors.foregroundPrimary)
@@ -99,7 +99,7 @@ struct ChatHistoryView: View {
                     ListCard {
                         ForEach(Array(section.items.enumerated()), id: \.offset) { idx, item in
                             ListItem(
-                                label: item.displayTitle?.nonBlank ?? "New conversation",
+                                label: item.displayTitle?.nonBlank ?? PreferencesManager.shared.label("fc_v2_app_label_new_conversation", fallback: "New conversation"),
                                 icon: Self.messageTypeIcon(item.message_type),
                                 showDivider: idx < section.items.count - 1,
                                 action: {
@@ -109,18 +109,27 @@ struct ChatHistoryView: View {
                             )
                         }
                     }
+                    // Android equivalent of lastVisible >= total - 3:
+                    // trigger loadNextPage when the last section's card scrolls into view.
+                    .onAppear {
+                        if section.id == sections.last?.id,
+                           viewModel.canLoadMore, !viewModel.isLoadingMore,
+                           viewModel.paginationError == nil {
+                            Task { await viewModel.loadNextPage() }
+                        }
+                    }
                 }
 
-                // §4 — prefetch sentinel: fires next-page load as footer scrolls into view.
+                // Backup sentinel — made taller so LazyVStack reliably detects it.
                 if viewModel.canLoadMore && !viewModel.isLoadingMore && viewModel.paginationError == nil {
                     Color.clear
-                        .frame(height: 1)
+                        .frame(height: 80)
                         .onAppear { Task { await viewModel.loadNextPage() } }
                 }
                 if viewModel.isLoadingMore {
                     HStack {
                         Spacer()
-                        LogoSpinner(type: .horizontal, label: "Loading more...")
+                        LogoSpinner(type: .horizontal, label: PreferencesManager.shared.label("fc_v2_app_label_loading_more", fallback: "Loading more..."))
                         Spacer()
                     }
                     .padding(.vertical, 24)

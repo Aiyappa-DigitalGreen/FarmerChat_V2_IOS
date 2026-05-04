@@ -10,6 +10,7 @@
 import SwiftUI
 import Combine
 
+// OTP has 4 digit boxes
 private let otpDigitCount = 4
 
 struct AuthView: View {
@@ -42,14 +43,15 @@ struct AuthView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Figma 5.3.1: green app bar with X (xmark) icon on left, "Sign up" centered white, "Skip" on right
             DefaultAppBar(
-                title: "Sign up",
-                leftIcon: "chevron.left",
+                title: PreferencesManager.shared.label("fc_v2_app_label_sign_up", fallback: "Sign up"),
+                leftIcon: "xmark",
                 onLeft: { leftTap() },
-                rightLabel: "Skip",
+                rightLabel: PreferencesManager.shared.label("fc_v2_app_label_skip", fallback: "Skip"),
                 onRightLabel: { dismiss() },
-                background: ContentColors.surfacePrimary,
-                foreground: ContentColors.foregroundPrimary
+                background: AppColors.green700,
+                foreground: AppColors.white
             )
 
             ScrollView {
@@ -83,7 +85,7 @@ struct AuthView: View {
                 ))
             } else {
                 VStack(spacing: 16) {
-                    LogoSpinner(type: .vertical, label: "Loading countries…")
+                    LogoSpinner(type: .vertical, label: PreferencesManager.shared.label("fc_v2_app_label_loading_languages", fallback: "Loading countries…"))
                 }
                 .padding(24)
                 .background(ContentColors.surfacePrimary.ignoresSafeArea())
@@ -134,33 +136,33 @@ struct AuthView: View {
 
     private var phoneSection: some View {
         VStack(spacing: 0) {
-            Text(sendState.isLoading ? "Enter phone number" : "Enter your phone number")
+            Text(sendState.isLoading ? PreferencesManager.shared.label("fc_v2_app_label_enter_phone_number", fallback: "Enter phone number") : PreferencesManager.shared.label("fc_v2_app_label_enter_your_phone_number", fallback: "Enter your phone number"))
                 .font(AppTypography.titleLarge())
                 .foregroundStyle(ContentColors.foregroundPrimary)
                 .multilineTextAlignment(.center)
 
             Text(sendState.isLoading
-                 ? "And we will send you a one time code"
-                 : "We'll send a one-time code to sign you in")
+                 ? PreferencesManager.shared.label("fc_v2_app_label_send_otp_signin_short", fallback: "And we will send you a one time code")
+                 : PreferencesManager.shared.label("fc_v2_app_label_send_otp_signin", fallback: "We'll send a one-time code to sign you in"))
                 .font(AppTypography.bodyMedium())
                 .foregroundStyle(ContentColors.foregroundSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.top, 8)
 
             HStack(alignment: .top, spacing: 8) {
-                if isCountryLoading {
-                    CountryCodeLoadingBox()
-                } else {
-                    CountryCodeSelector(
-                        countryCode: selectedDial,
-                        flagUrl: selectedCountry?.flag,
-                        countryIso: selectedIso,
-                        onTap: {
-                            if selectedCountry == nil { applyInitialCountrySelection() }
-                            showCountryPicker = selectedCountry != nil
-                        }
-                    )
-                }
+                // Always show the selector with "+91"/IN fallbacks so the layout is
+                // stable before the countries list loads — prevents the half-screen jump.
+                CountryCodeSelector(
+                    countryCode: selectedDial,
+                    flagUrl: selectedCountry?.flag,
+                    countryIso: selectedIso,
+                    isLoading: isCountryLoading,
+                    onTap: {
+                        guard !isCountryLoading else { return }
+                        if selectedCountry == nil { applyInitialCountrySelection() }
+                        showCountryPicker = selectedCountry != nil
+                    }
+                )
 
                 FormTextInput(
                     text: $phoneLocal,
@@ -178,7 +180,7 @@ struct AuthView: View {
 
             if sendState.isLoading {
                 PrimaryButton(
-                    label: "Sending code...",
+                    label: PreferencesManager.shared.label("fc_v2_app_label_sending_code", fallback: "Sending code..."),
                     state: .loading,
                     height: 56,
                     isEnabled: false,
@@ -189,9 +191,9 @@ struct AuthView: View {
                 VStack(spacing: 8) {
                     if availableWhatsapp {
                         PrimaryButton(
-                            label: "Send via WhatsApp",
+                            label: PreferencesManager.shared.label("fc_v2_app_label_send_via_whatsapp", fallback: "Send via WhatsApp"),
                             state: .default,
-                            height: 48,
+                            height: 56,
                             icon: "message.fill",
                             iconPosition: .leading,
                             isEnabled: canSend,
@@ -203,9 +205,9 @@ struct AuthView: View {
                     }
                     if availableSms {
                         PrimaryButton(
-                            label: "Send via SMS",
+                            label: PreferencesManager.shared.label("fc_v2_app_label_send_via_sms", fallback: "Send via SMS"),
                             state: .default,
-                            height: 48,
+                            height: 56,
                             icon: "message.fill",
                             iconPosition: .leading,
                             isEnabled: canSend,
@@ -231,12 +233,12 @@ struct AuthView: View {
 
     private var otpSection: some View {
         VStack(spacing: 0) {
-            Text("Enter the code we sent")
+            Text(PreferencesManager.shared.label("fc_v2_app_label_enter_code_we_sent", fallback: "Enter the code we sent"))
                 .font(AppTypography.titleLarge())
                 .foregroundStyle(ContentColors.foregroundPrimary)
                 .multilineTextAlignment(.center)
 
-            Text("Check your messages for the code")
+            Text(PreferencesManager.shared.label("fc_v2_app_label_check_your_messages_code", fallback: "Check your messages for the code"))
                 .font(AppTypography.bodyMedium())
                 .foregroundStyle(ContentColors.foregroundSecondary)
                 .multilineTextAlignment(.center)
@@ -254,7 +256,7 @@ struct AuthView: View {
             }
 
             PrimaryButton(
-                label: verifyState.isLoading ? "Verifying" : "Verify",
+                label: verifyState.isLoading ? PreferencesManager.shared.label("fc_v2_app_label_verifying", fallback: "Verifying") : PreferencesManager.shared.label("fc_v2_app_label_verify", fallback: "Verify"),
                 state: verifyState.isLoading ? .loading : .default,
                 height: 56,
                 isEnabled: otpString.count == otpDigitCount && !verifyState.isLoading,
@@ -262,29 +264,32 @@ struct AuthView: View {
             )
             .padding(.top, 16)
 
+            // Figma 5.3.4: timer row uses lightbulb icon; "Resend code" shown below timer (grayed out).
+            // Figma 5.3.5 (expired): "Start over" + "Resend code" both shown, both tappable.
             if resendSeconds > 0 {
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
                             .fill(BrandColors.feedbackSuccess)
                             .frame(width: 32, height: 32)
-                        Image(systemName: "timer")
+                        Image(systemName: "lightbulb.fill")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(AppColors.white)
                     }
-                    Text("Please enter in \(resendMinutesSeconds) seconds")
+                    Text("\(PreferencesManager.shared.label("fc_v2_app_label_please_enter", fallback: "Please enter in")) \(resendMinutesSeconds) \(PreferencesManager.shared.label("fc_v2_app_label_seconds", fallback: "seconds"))")
                         .font(AppTypography.bodyMedium())
                         .foregroundStyle(ContentColors.foregroundPrimary)
                 }
                 .padding(.top, 16)
 
-                Text("Resend code")
+                // "Resend code" visible but grayed out while timer is running
+                Text(PreferencesManager.shared.label("fc_v2_app_label_resend_code", fallback: "Resend code"))
                     .font(AppTypography.labelLarge())
                     .foregroundStyle(ContentColors.foregroundSecondary)
                     .padding(.vertical, 8)
-                    .padding(.top, 16)
+                    .padding(.top, 8)
             } else {
-                Text("Start over")
+                Text(PreferencesManager.shared.label("fc_v2_app_label_start_over", fallback: "Start over"))
                     .font(AppTypography.labelLarge())
                     .foregroundStyle(verifyState.isLoading ? ContentColors.foregroundSecondary : ContentColors.foregroundPrimary)
                     .padding(.vertical, 8)
@@ -296,7 +301,7 @@ struct AuthView: View {
                         }
                     }
 
-                Text("Resend code")
+                Text(PreferencesManager.shared.label("fc_v2_app_label_resend_code", fallback: "Resend code"))
                     .font(AppTypography.labelLarge())
                     .foregroundStyle(verifyState.isLoading ? ContentColors.foregroundSecondary : ContentColors.foregroundPrimary)
                     .padding(.vertical, 8)
@@ -335,11 +340,11 @@ struct AuthView: View {
         otpError = nil
         let digits = phoneDigits
         guard !digits.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            phoneError = "Please enter a valid number to continue"
+            phoneError = PreferencesManager.shared.label("fc_v2_app_label_please_check_try_again", fallback: "Please enter a valid number to continue")
             return
         }
         guard isPhoneValid() else {
-            phoneError = "Please check and try again."
+            phoneError = PreferencesManager.shared.label("fc_v2_app_label_please_check_try_again", fallback: "Please check and try again.")
             return
         }
 

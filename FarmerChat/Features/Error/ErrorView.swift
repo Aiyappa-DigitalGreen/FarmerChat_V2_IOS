@@ -18,13 +18,13 @@ struct ErrorView: View {
     let onTryAgain: () async -> Void
 
     private var title: String {
-        isNetworkError ? "No internet connection" : "Something went wrong"
+        isNetworkError ? PreferencesManager.shared.label("fc_v2_app_label_no_internet_connection", fallback: "No internet connection") : PreferencesManager.shared.label("fc_v2_app_label_something_went_wrong", fallback: "Something went wrong")
     }
     private var mainMessage: String {
-        isNetworkError ? "FarmerChat needs\nthe internet" : "FarmerChat couldn't load"
+        isNetworkError ? PreferencesManager.shared.label("fc_v2_app_label_farmerchat_needs_the_internet", fallback: "FarmerChat needs\nthe internet") : PreferencesManager.shared.label("fc_v2_app_label_farmerchat_couldnt_load", fallback: "FarmerChat couldn't load")
     }
     private var subtitle: String {
-        isNetworkError ? "Check mobile data or Wi-Fi signal" : "Please try again"
+        isNetworkError ? PreferencesManager.shared.label("fc_v2_app_label_check_mobile_data_wi-fi_signal", fallback: "Check mobile data or Wi-Fi signal") : PreferencesManager.shared.label("fc_v2_app_label_please_try_again", fallback: "Please try again")
     }
 
     var body: some View {
@@ -32,7 +32,7 @@ struct ErrorView: View {
             title: title,
             mainMessage: mainMessage,
             subtitle: subtitle,
-            primaryCtaLabel: "Try again",
+            primaryCtaLabel: PreferencesManager.shared.label("fc_v2_app_label_try_again", fallback: "Try again"),
             primaryCtaState: .chevron,
             onPrimaryCta: { Task { await onTryAgain() } },
             illustration: "farmer_looking_at_sky",

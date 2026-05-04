@@ -19,8 +19,9 @@ struct AccountSuccessView: View {
             BrandColors.surfacePrimary.ignoresSafeArea()
 
             VStack(spacing: 0) {
+                // Figma 5.3.7: no back button, just "Sign up" title centered on green bar
                 DefaultAppBar(
-                    title: "Sign up",
+                    title: PreferencesManager.shared.label("fc_v2_app_label_sign_up", fallback: "Sign up"),
                     leftIcon: Optional<String>.none,
                     onLeft: nil
                 )
@@ -30,22 +31,25 @@ struct AccountSuccessView: View {
                         illustration
                             .padding(.top, 32)
 
-                        Text("You\u{2019}re all set!")
+                        // Figma 5.3.7: "You're all set!" titleLarge, white
+                        Text(PreferencesManager.shared.label("fc_v2_app_label_youre_all_set", fallback: "You're all set!"))
                             .font(AppTypography.titleLarge())
                             .foregroundStyle(BrandColors.foregroundPrimary)
                             .multilineTextAlignment(.center)
                             .padding(.top, 24)
 
-                        Text("Find your previous questions in the menu and continue anytime.")
-                            .font(AppTypography.bodyLarge())
+                        // Figma 5.3.7: subtitle bodyMedium, white slightly dimmed
+                        Text(PreferencesManager.shared.label("fc_v2_app_label_previous_questions_menu", fallback: "Find your previous questions in the menu and continue anytime."))
+                            .font(AppTypography.bodyMedium())
                             .foregroundStyle(BrandColors.foregroundPrimary.opacity(0.85))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
                             .padding(.top, 12)
 
+                        // Figma 5.3.7: "Continue" button, no chevron, dark green, 56pt
                         PrimaryButton(
-                            label: "Continue",
-                            state: .chevron,
+                            label: PreferencesManager.shared.label("fc_v2_app_label_continue", fallback: "Continue"),
+                            state: .default,
                             height: 56,
                             action: {
                                 // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.signupContinueClicked, properties: nil, adjustToken: AnalyticsConstants.AdjustToken.signupContinueClicked)

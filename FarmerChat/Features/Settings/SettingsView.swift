@@ -18,7 +18,7 @@ struct SettingsView: View {
     var body: some View {
         VStack(spacing: 0) {
             DefaultAppBar(
-                title: "Settings",
+                title: prefs.label("fc_v2_app_label_settings", fallback: "Settings"),
                 leftIcon: "line.3.horizontal",
                 onLeft: { navigator.showDrawer = true }
             )
@@ -47,7 +47,7 @@ struct SettingsView: View {
 
     private var appearanceSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Appearance")
+            Text(prefs.label("fc_v2_app_label_display", fallback: "Display"))
                 .font(AppTypography.labelLarge())
                 .foregroundStyle(ContentColors.foregroundPrimary)
 
@@ -67,9 +67,9 @@ struct SettingsView: View {
 
     private var appearanceCaption: String {
         switch prefs.appearanceMode {
-        case .day: return "FarmerChat is always in light mode"
-        case .night: return "FarmerChat is always in dark mode"
-        case .auto: return "FarmerChat adjusts with your phone settings"
+        case .day: return prefs.label("fc_v2_app_label_farmerchat_always_light_mode", fallback: "FarmerChat is always in light mode")
+        case .night: return prefs.label("fc_v2_app_label_farmerchat_always_dark_mode", fallback: "FarmerChat is always in dark mode")
+        case .auto: return prefs.label("fc_v2_app_label_farmerchat_adjusts_your_phone_settings", fallback: "FarmerChat adjusts with your phone settings")
         }
     }
 
@@ -77,7 +77,7 @@ struct SettingsView: View {
 
     private var accountDetailsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Account details")
+            Text(prefs.label("fc_v2_app_label_your_information", fallback: "Your information"))
                 .font(AppTypography.labelLarge())
                 .foregroundStyle(ContentColors.foregroundPrimary)
 
@@ -92,7 +92,7 @@ struct SettingsView: View {
                     )
                 }
                 ListItem(
-                    label: "Your name",
+                    label: prefs.label("fc_v2_app_label_your_name", fallback: "Your name"),
                     rightLabel: profileName,
                     showChevron: true,
                     showDivider: false,
@@ -104,13 +104,15 @@ struct SettingsView: View {
 
             if prefs.isOtpVerified {
                 SecondaryButton(
-                    label: "Logout",
+                    label: prefs.label("fc_v2_app_label_logout", fallback: "Logout"),
                     height: 48,
+                    background: ContentColors.surfaceSecondary,
+                    foreground: ContentColors.foregroundPrimary,
                     action: { Task { await logout() } }
                 )
             } else {
                 PrimaryButton(
-                    label: "Sign up",
+                    label: prefs.label("fc_v2_app_label_sign_up", fallback: "Sign up"),
                     state: .chevron,
                     height: 48,
                     action: { navigator.performSignUpGate(viaDrawer: false) }
@@ -155,7 +157,7 @@ struct SettingsView: View {
             try? await Task.sleep(nanoseconds: 500_000_000)
             await MainActor.run {
                 toastState = .success
-                toastMessage = "Your name has been updated."
+                toastMessage = prefs.label("fc_v2_app_label_your_name_has_updated", fallback: "Your name has been updated.")
             }
         }
     }
@@ -233,10 +235,11 @@ private struct AppearanceModeSelector: View {
     }
 
     private func label(for mode: AppearanceMode) -> String {
+        let prefs = PreferencesManager.shared
         switch mode {
-        case .day: return "Day"
-        case .night: return "Night"
-        case .auto: return "Auto"
+        case .day: return prefs.label("fc_v2_app_label_day", fallback: "Day")
+        case .night: return prefs.label("fc_v2_app_label_night", fallback: "Night")
+        case .auto: return prefs.label("fc_v2_app_label_auto", fallback: "Auto")
         }
     }
 

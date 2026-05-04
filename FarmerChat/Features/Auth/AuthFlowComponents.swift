@@ -74,6 +74,7 @@ struct CountryCodeSelector: View {
     let countryCode: String      // "+91"
     let flagUrl: String?          // http URL or nil → emoji fallback
     let countryIso: String        // "IN" — drives emoji fallback
+    var isLoading: Bool = false
     var minWidth: CGFloat = 90
     var height: CGFloat = 56
     var onTap: () -> Void
@@ -81,11 +82,18 @@ struct CountryCodeSelector: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 8) {
-                CountryFlagView(flagUrl: flagUrl ?? "", code: countryIso)
-                    .frame(width: 21, height: 15)
+                if isLoading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: ContentColors.borderActive))
+                        .scaleEffect(0.75)
+                        .frame(width: 21, height: 15)
+                } else {
+                    CountryFlagView(flagUrl: flagUrl ?? "", code: countryIso)
+                        .frame(width: 21, height: 15)
+                }
                 Text(countryCode)
                     .font(AppTypography.bodyMedium())
-                    .foregroundStyle(ContentColors.foregroundPrimary)
+                    .foregroundStyle(isLoading ? ContentColors.foregroundSecondary : ContentColors.foregroundPrimary)
             }
             .padding(.horizontal, 14)
             .frame(minWidth: minWidth)
@@ -98,6 +106,7 @@ struct CountryCodeSelector: View {
             .smoothCorner(Radius.md)
         }
         .buttonStyle(.plain)
+        .disabled(isLoading)
     }
 }
 

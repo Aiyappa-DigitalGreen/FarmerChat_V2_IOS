@@ -203,6 +203,8 @@ struct MarkdownTextView: View {
         case .paragraph(let text):
             Text(formatInline(text, baseFont: bodyFont, color: textColor))
                 .lineSpacing(4)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
         case .bullet(let text, let nested):
             HStack(alignment: .firstTextBaseline, spacing: 8) {

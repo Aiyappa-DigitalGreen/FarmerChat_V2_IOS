@@ -171,6 +171,11 @@ final class PreferencesManager: ObservableObject {
         set { defaults.set(newValue, forKey: PreferenceKeys.languageLabelsLoaded) }
     }
 
+    func label(_ key: String, fallback: String) -> String {
+        let v = languageLabels[key] ?? ""
+        return v.trimmingCharacters(in: .whitespaces).isEmpty ? fallback : v
+    }
+
     // MARK: - Device
     var deviceId: String? {
         get { defaults.string(forKey: PreferenceKeys.deviceId) }

@@ -28,7 +28,7 @@ struct HelpView: View {
     var body: some View {
         VStack(spacing: 0) {
             DefaultAppBar(
-                title: "Help",
+                title: PreferencesManager.shared.label("fc_v2_app_label_help", fallback: "Help"),
                 leftIcon: "line.3.horizontal",
                 onLeft: { navigator.showDrawer = true }
             )
@@ -72,7 +72,7 @@ struct HelpView: View {
 
     private var howToUseSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("How to use FarmerChat")
+            Text(PreferencesManager.shared.label("fc_v2_app_label_how_to_use_farmerchat", fallback: "How to use FarmerChat"))
                 .font(AppTypography.labelLarge())
                 .foregroundStyle(ContentColors.foregroundPrimary)
 
@@ -83,7 +83,7 @@ struct HelpView: View {
                     }
                 } else if faqs.isEmpty {
                     ListItem(
-                        label: "No FAQs available",
+                        label: PreferencesManager.shared.label("fc_v2_app_label_no_faqs_available", fallback: "No FAQs available"),
                         showChevron: false,
                         showDivider: false,
                         action: {}
@@ -106,7 +106,7 @@ struct HelpView: View {
     private var moreSection: some View {
         if !legalLinks.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                Text("More")
+                Text(PreferencesManager.shared.label("fc_v2_app_label_more", fallback: "More"))
                     .font(AppTypography.labelLarge())
                     .foregroundStyle(ContentColors.foregroundPrimary)
 
@@ -150,14 +150,14 @@ struct HelpView: View {
             presentedFaqHtml = FaqHtmlItem(title: title, html: answer)
         } else {
             toastState = .error
-            toastMessage = "Link unavailable"
+            toastMessage = PreferencesManager.shared.label("fc_v2_app_label_link_unavailable", fallback: "Link unavailable")
         }
     }
 
     private func openLegal(_ link: (title: String, url: String)) {
         guard !link.url.isEmpty, let url = URL(string: link.url) else {
             toastState = .error
-            toastMessage = "Link unavailable"
+            toastMessage = PreferencesManager.shared.label("fc_v2_app_label_link_unavailable", fallback: "Link unavailable")
             return
         }
         if link.title.lowercased().contains("privacy") {
@@ -176,8 +176,9 @@ struct HelpView: View {
             await MainActor.run {
                 faqs = res.faqs
                 var links: [(title: String, url: String)] = []
-                if let u = res.legalResolved?.terms_of_use?.webview_url { links.append(("Terms of use", u)) }
-                if let u = res.legalResolved?.privacy_policy?.webview_url { links.append(("Privacy policy", u)) }
+                let prefs = PreferencesManager.shared
+                if let u = res.legalResolved?.terms_of_use?.webview_url { links.append((prefs.label("fc_v2_app_label_terms_of_use", fallback: "Terms of use"), u)) }
+                if let u = res.legalResolved?.privacy_policy?.webview_url { links.append((prefs.label("fc_v2_app_label_privacy_policy", fallback: "Privacy policy"), u)) }
                 legalLinks = links
                 loading = false
             }

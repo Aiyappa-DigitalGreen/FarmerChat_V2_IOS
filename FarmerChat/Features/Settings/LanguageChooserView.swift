@@ -9,8 +9,6 @@
 
 import SwiftUI
 
-private let languagePreviewLimit = 5
-
 struct LanguageChooserView: View {
     @Environment(AppNavigator.self) private var navigator
     @State private var viewModel: LanguageSelectionViewModel
@@ -26,7 +24,7 @@ struct LanguageChooserView: View {
     var body: some View {
         VStack(spacing: 0) {
             DefaultAppBar(
-                title: "Choose your language",
+                title: PreferencesManager.shared.label("fc_v2_app_label_choose_your_language", fallback: "Choose your language"),
                 leftIcon: "line.3.horizontal",
                 onLeft: { navigator.showDrawer = true }
             )
@@ -44,7 +42,7 @@ struct LanguageChooserView: View {
         .background(ContentColors.surfacePrimary)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .navigationDestination(isPresented: $showAllLanguages) {
+        .fullScreenCover(isPresented: $showAllLanguages) {
             AllLanguagesSelectionView(viewModel: viewModel, onSelect: {
                 userMadeSelection = true
             })
@@ -58,7 +56,7 @@ struct LanguageChooserView: View {
         switch viewModel.languageState {
         case .success(let langs):
             LazyVStack(spacing: 6) {
-                ForEach(Array(langs.prefix(languagePreviewLimit)), id: \.id) { lang in
+                ForEach(langs, id: \.id) { lang in
                     SharedRadioButton(
                         label: lang.display_name,
                         isSelected: viewModel.selectedLanguageId == String(lang.id),
@@ -69,9 +67,9 @@ struct LanguageChooserView: View {
                         }
                     )
                 }
-                if langs.count > languagePreviewLimit {
+                if !viewModel.expandedLanguages.isEmpty {
                     SecondaryButton(
-                        label: "All Languages",
+                        label: PreferencesManager.shared.label("fc_v2_app_label_all_languages", fallback: "All Languages"),
                         height: 54,
                         action: { showAllLanguages = true }
                     )
@@ -79,7 +77,7 @@ struct LanguageChooserView: View {
                 }
             }
         default:
-            LogoSpinner(type: .vertical, label: "Loading languages...")
+            LogoSpinner(type: .vertical, label: PreferencesManager.shared.label("fc_v2_app_label_loading_languages", fallback: "Loading languages..."), continuous: true)
                 .padding(.vertical, 40)
                 .frame(maxWidth: .infinity)
         }
@@ -91,7 +89,7 @@ struct LanguageChooserView: View {
                 && !viewModel.selectedLanguageId.isEmpty
                 && !viewModel.isSubmitting
             PrimaryButton(
-                label: viewModel.isSubmitting ? "Setting language" : "Save language",
+                label: viewModel.isSubmitting ? PreferencesManager.shared.label("fc_v2_app_label_setting_language", fallback: "Setting language") : PreferencesManager.shared.label("fc_v2_app_label_save_language", fallback: "Save language"),
                 state: viewModel.isSubmitting ? .loading : .chevron,
                 height: 56,
                 isEnabled: canSubmit,
@@ -99,7 +97,7 @@ struct LanguageChooserView: View {
                     Task {
                         await viewModel.submitAndNavigate(onSuccess: {
                             toastState = .success
-                            toastMessage = "Language updated"
+                            toastMessage = PreferencesManager.shared.label("fc_v2_app_label_language_updated", fallback: "Language updated")
                             Task {
                                 try? await Task.sleep(nanoseconds: 800_000_000)
                                 await MainActor.run { navigator.popToHome() }

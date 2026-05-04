@@ -39,13 +39,13 @@ struct EnterNameView: View {
                     .frame(width: 32, height: 32)
                     .padding(.top, 32)
 
-                Text("What should we call you?")
+                Text(PreferencesManager.shared.label("fc_v2_app_label_what_should_we_call_you", fallback: "What should we call you?"))
                     .font(AppTypography.titleLarge())
                     .foregroundStyle(ContentColors.foregroundPrimary)
                     .multilineTextAlignment(.center)
                     .padding(.top, 14)
 
-                Text("So we can greet you by name")
+                Text(PreferencesManager.shared.label("fc_v2_app_label_we_greet_you_name", fallback: "So we can greet you by name"))
                     .font(AppTypography.bodyMedium())
                     .foregroundStyle(ContentColors.foregroundSecondary)
                     .multilineTextAlignment(.center)
@@ -54,7 +54,7 @@ struct EnterNameView: View {
 
                 FormTextInput(
                     text: $name,
-                    placeholder: "Your name",
+                    placeholder: PreferencesManager.shared.label("fc_v2_app_label_your_name_or_nickname", fallback: "Your name"),
                     state: isLoading ? .disabled : .default,
                     autocapitalization: .words,
                     isFocused: isNameFieldFocused
@@ -67,7 +67,7 @@ struct EnterNameView: View {
                 }
 
                 PrimaryButton(
-                    label: isLoading ? "Saving" : "Save name",
+                    label: isLoading ? PreferencesManager.shared.label("fc_v2_app_label_saving", fallback: "Saving") : PreferencesManager.shared.label("fc_v2_app_label_save_name", fallback: "Save name"),
                     state: primaryState,
                     height: 56,
                     isEnabled: buttonEnabled && !isLoading,
@@ -80,10 +80,9 @@ struct EnterNameView: View {
 
                 if !hasName {
                     Button(action: skip) {
-                        Text("Skip for now")
+                        Text(PreferencesManager.shared.label("fc_v2_app_label_skip_for_now", fallback: "Skip for now"))
                             .font(AppTypography.labelLarge())
-                            .foregroundStyle(ContentColors.foregroundSecondary)
-                            .underline()
+                            .foregroundStyle(ContentColors.foregroundPrimary)
                     }
                     .buttonStyle(.plain)
                     .padding(.top, 12)
@@ -158,12 +157,12 @@ struct EnterNameView: View {
         let n = trimmedName
         if n.count < 3 {
             toastState = .error
-            toastMessage = "Name must be at least 3 characters"
+            toastMessage = "\(PreferencesManager.shared.label("fc_v2_app_label_name_must_be_at_least", fallback: "Name must be at least")) 3 \(PreferencesManager.shared.label("fc_v2_app_label_characters", fallback: "characters"))"
             return
         }
         if n.count > 100 {
             toastState = .error
-            toastMessage = "Name must be at most 100 characters"
+            toastMessage = "\(PreferencesManager.shared.label("fc_v2_app_label_name_must_be_at_most", fallback: "Name must be at most")) 100 \(PreferencesManager.shared.label("fc_v2_app_label_characters", fallback: "characters"))"
             return
         }
         isLoading = true

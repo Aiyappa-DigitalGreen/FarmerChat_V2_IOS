@@ -29,13 +29,13 @@ struct LocationPromptView: View {
             case .idle:
                 EmptyView()
             case .interstitial:
-                interstitial(buttonState: .chevron, buttonLabel: "Share Location")
+                interstitial(buttonState: .chevron, buttonLabel: PreferencesManager.shared.label("fc_v2_app_label_share_location", fallback: "Share Location"))
             case .requestPermission, .requestEnableGps:
-                interstitial(buttonState: .loading, buttonLabel: "Getting your location...")
+                interstitial(buttonState: .loading, buttonLabel: PreferencesManager.shared.label("fc_v2_app_label_getting_your_location", fallback: "Getting your location..."))
             case .fetchingLocation:
-                interstitial(buttonState: .loading, buttonLabel: "Getting your location...")
+                interstitial(buttonState: .loading, buttonLabel: PreferencesManager.shared.label("fc_v2_app_label_getting_your_location", fallback: "Getting your location..."))
             case .recovery:
-                interstitial(buttonState: .chevron, buttonLabel: "Share Location")
+                interstitial(buttonState: .chevron, buttonLabel: PreferencesManager.shared.label("fc_v2_app_label_share_location", fallback: "Share Location"))
             case .error(let type):
                 errorScreen(type: type)
             }
@@ -58,16 +58,17 @@ struct LocationPromptView: View {
     // MARK: - Interstitial (UI_LOCATION.md §2)
 
     private func interstitial(buttonState: PrimaryButtonState, buttonLabel: String) -> some View {
+        let prefs = PreferencesManager.shared
         let isFetching = buttonState == .loading
         let leftIcon: String? = isFetching ? nil : "chevron.left"
         let onLeft: (() -> Void)? = isFetching ? nil : { manager.cancel() }
-        let rightLabel: String? = isFetching ? nil : "Skip"
+        let rightLabel: String? = isFetching ? nil : prefs.label("fc_v2_app_label_skip", fallback: "Skip")
         let onRight: (() -> Void)? = isFetching ? nil : { manager.skipOrContinueWithoutLocation() }
 
         return FullScreenMessage(
-            title: "Share Location",
-            mainMessage: "Get advice for your area",
-            subtitle: "Your location helps us suggest crops, weather, and pests near you.",
+            title: prefs.label("fc_v2_app_label_share_location", fallback: "Share Location"),
+            mainMessage: prefs.label("fc_v2_app_label_get_advice_your_area", fallback: "Get advice for your area"),
+            subtitle: prefs.label("fc_v2_app_label_location_helps_suggestions", fallback: "Your location helps us suggest crops, weather, and pests near you."),
             primaryCtaLabel: buttonLabel,
             primaryCtaState: buttonState,
             onPrimaryCta: { manager.userTappedTurnOnLocation() },
@@ -90,7 +91,7 @@ struct LocationPromptView: View {
             title: copy.title,
             mainMessage: copy.mainMessage,
             subtitle: copy.subtitle,
-            primaryCtaLabel: "Try again",
+            primaryCtaLabel: PreferencesManager.shared.label("fc_v2_app_label_try_again", fallback: "Try again"),
             primaryCtaState: .chevron,
             onPrimaryCta: {
                 switch type {
@@ -106,21 +107,22 @@ struct LocationPromptView: View {
     }
 
     private func errorCopy(_ type: LocationPromptErrorType) -> (title: String, mainMessage: String, subtitle: String, illustration: String) {
+        let prefs = PreferencesManager.shared
         switch type {
         case .noNetwork:
-            return ("No internet connection",
-                    "FarmerChat needs\nthe internet",
-                    "Check mobile data or Wi-Fi signal",
+            return (prefs.label("fc_v2_app_label_no_internet_connection", fallback: "No internet connection"),
+                    prefs.label("fc_v2_app_label_farmerchat_needs_the_internet", fallback: "FarmerChat needs\nthe internet"),
+                    prefs.label("fc_v2_app_label_check_mobile_data_wi-fi_signal", fallback: "Check mobile data or Wi-Fi signal"),
                     "farmer_looking_at_sky")
         case .gpsUnavailable:
-            return ("Turn on GPS",
-                    "Get local advice",
-                    "Location and GPS are turned off. Turning this on helps us tailor answers to your area.",
+            return (prefs.label("fc_v2_app_label_turn_on_gps", fallback: "Turn on GPS"),
+                    prefs.label("fc_v2_app_label_get_local_advice", fallback: "Get local advice"),
+                    prefs.label("fc_v2_app_label_location_gps_turned_off_turning_helps", fallback: "Location and GPS are turned off. Turning this on helps us tailor answers to your area."),
                     "farmer_looking_at_phone")
         case .locationFailed:
-            return ("Something went wrong",
-                    "Couldn't get your location",
-                    "Please try again.",
+            return (prefs.label("fc_v2_app_label_something_went_wrong", fallback: "Something went wrong"),
+                    prefs.label("fc_v2_app_label_couldnt_get_your_location", fallback: "Couldn't get your location"),
+                    prefs.label("fc_v2_app_label_please_try_again", fallback: "Please try again."),
                     "farmer_looking_at_phone")
         }
     }
@@ -153,20 +155,20 @@ struct LocationPromptView: View {
             Spacer().frame(height: 4)
 
             VStack(spacing: 12) {
-                Text("We need your location")
+                Text(PreferencesManager.shared.label("fc_v2_app_label_we_need_your_location", fallback: "We need your location"))
                     .font(AppTypography.titleLarge())
                     .foregroundStyle(ContentColors.foregroundPrimary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
 
-                Text("Sharing your location helps FarmerChat tailor advice to your farm.")
+                Text(PreferencesManager.shared.label("fc_v2_app_label_location_tailor_advice", fallback: "Sharing your location helps FarmerChat tailor advice to your farm."))
                     .font(AppTypography.bodyMedium())
                     .foregroundStyle(ContentColors.foregroundPrimary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
 
                 PrimaryButton(
-                    label: "Turn on in settings",
+                    label: PreferencesManager.shared.label("fc_v2_app_label_turn_on_in_settings", fallback: "Turn on in settings"),
                     state: .chevron,
                     height: 56,
                     action: { manager.openSettings() }

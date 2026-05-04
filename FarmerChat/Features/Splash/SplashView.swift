@@ -31,16 +31,16 @@ struct SplashView: View {
             } else {
                 LinearGradient(
                     colors: [AppColors.gradientYellow, AppColors.gradientMidGreen, AppColors.gradientDarkGreen],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
                 .ignoresSafeArea()
             }
             #else
             LinearGradient(
                 colors: [AppColors.gradientYellow, AppColors.gradientMidGreen, AppColors.gradientDarkGreen],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                startPoint: .top,
+                endPoint: .bottom
             )
             .ignoresSafeArea()
             #endif
@@ -48,11 +48,10 @@ struct SplashView: View {
             LogoMarkShape()
                 .fill(BrandColors.foregroundPrimary)
                 .frame(width: logoSize, height: logoSize)
-                .scaleEffect(contentAppeared ? 1 : 0.8)
-                .opacity(contentAppeared ? 1 : 0)
+                .scaleEffect(contentAppeared ? 1 : 0.85)
                 .rotationEffect(.degrees(logoRotation))
         }
-        // UI_SPLASH.md §4 — reassurance toast slides in from top, Radius.LG, 8dp shadow.
+        // UI_SPLASH.md §4 — reassurance toast slides in from bottom, Radius.LG, 8dp shadow.
         .overlay(alignment: .bottom) {
             if showReassuranceToast {
                 HStack(spacing: 12) {
@@ -64,7 +63,7 @@ struct SplashView: View {
                             .progressViewStyle(CircularProgressViewStyle(tint: AppColors.white))
                             .scaleEffect(0.8)
                     }
-                    Text("FarmerChat is starting...")
+                    Text(PreferencesManager.shared.label("fc_v2_app_label_farmerchat_starting", fallback: "FarmerChat is starting..."))
                         .font(AppTypography.bodySmall())
                         .foregroundStyle(AppColors.black)
                     Spacer(minLength: 0)

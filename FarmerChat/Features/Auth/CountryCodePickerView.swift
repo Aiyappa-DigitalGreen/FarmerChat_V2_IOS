@@ -2,7 +2,7 @@
 //  CountryCodePickerView.swift
 //  FarmerChat
 //
-//  Country picker — matches UI_AUTH.md §4: neutral app bar, search inside scroll,
+//  Country picker — matches UI_AUTH.md §4: green app bar with X icon, search inside scroll,
 //  startsWith filter, RadioButton rows, 56pt save CTA.
 //
 
@@ -35,18 +35,20 @@ struct CountryCodePickerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Figma 5.4/5.5: green app bar with X (xmark) icon on left, white title "Select country code"
             DefaultAppBar(
-                title: "Select country code",
-                leftIcon: "chevron.left",
+                title: PreferencesManager.shared.label("fc_v2_app_label_select_country_code", fallback: "Select country code"),
+                leftIcon: "xmark",
                 onLeft: { dismiss() },
-                background: ContentColors.surfacePrimary,
-                foreground: ContentColors.foregroundPrimary
+                background: AppColors.green700,
+                foreground: AppColors.white
             )
 
             ScrollView {
                 LazyVStack(spacing: 6) {
                     // Search input (scrolls with list per UI_AUTH.md §4).
-                    SearchInput(text: $searchText, placeholder: "Search")
+                    // Figma 5.5: when active, search field has green border
+                    SearchInput(text: $searchText, placeholder: PreferencesManager.shared.label("fc_v2_app_label_search", fallback: "Search"))
                         .padding(.bottom, 10)
 
                     ForEach(filteredCountries) { c in
@@ -64,9 +66,10 @@ struct CountryCodePickerView: View {
             }
             .background(ContentColors.surfacePrimary)
 
-            // Bottom bar — 56pt PrimaryButton.
+            // Figma 5.4: bottom bar — dark green 56pt "Save selection" CTA
+            // Figma 5.4 (no selection): button is disabled/grayed; 5.5 (selection made): button is active dark green
             PrimaryButton(
-                label: "Save selection",
+                label: PreferencesManager.shared.label("fc_v2_app_label_save_selection", fallback: "Save selection"),
                 height: 56,
                 action: {
                     selectedCountry = tempSelection

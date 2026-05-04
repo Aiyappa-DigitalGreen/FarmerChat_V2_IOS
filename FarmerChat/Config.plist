@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>GUEST_USER_API_KEY</key>
+	<string>Y2K3kW5R9uQ0fL2X8zI7hT3aJ7</string>
+	<key>MOENGAGE_APP_ID</key>
+	<string>NHFB51NG9QLPAAV8F87ZOCFG</string>
+	<key>ADJUST_APP_TOKEN</key>
+	<string>i6jfpa5rvr40</string>
+	<key>PLOTLINE_API_KEY_DEV</key>
+	<string>ZjllMDc4OTctNGYxZi00M2NkLWFjOGQtYjdmOGQ1ZTFiOWY5</string>
+	<key>PLOTLINE_API_KEY_PROD</key>
+	<string>ZTI4ZjAyNDAtODJmNS00MjhlLTgxOTItNTQ4MTk1OGQxMWFi</string>
+	<key>v2_show_name_screen_onboarding</key>
+	<true/>
+	<key>enable_auth_interstitial</key>
+	<true/>
+	<key>chat_feedback_enabled</key>
+	<true/>
+	<key>hide_read_full_advice_for_campaign</key>
+	<false/>
+	<key>v2_wobble_animation_enabled</key>
+	<true/>
+	<key>STOP_ANIMATION_ON_FIRST_CARD_CLICK</key>
+	<true/>
+</dict>
+</plist>

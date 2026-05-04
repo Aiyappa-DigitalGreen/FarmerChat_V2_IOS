@@ -10,11 +10,11 @@ import AVFoundation
 import UIKit
 
 private let chatHeaderGreen = AppColors.authHeaderGreen
-private let chatUserBubbleBg = AppColors.adaptiveSecondaryGroupedBackground
-private let chatAiBubbleBg = AppColors.adaptiveSecondaryGroupedBackground
-private let chatActionGreen = AppColors.authButtonDarkGreen
-private let chatActionBarGreen = AppColors.authButtonDarkGreen
-private let chatRelatedCardBg = AppColors.adaptiveSecondaryGroupedBackground
+private let chatUserBubbleBg = ContentColors.surfaceReadingSecondary       // neutral150 (light) / neutral800 (dark)
+private let chatAiBubbleBg = ContentColors.surfaceReadingSecondary
+private let chatActionGreen = AppColors.authHeaderGreen                    // #008236 — matches design buttons
+private let chatActionBarGreen = AppColors.authButtonDarkGreen             // #08361B — dark bar for input
+private let chatRelatedCardBg = ContentColors.surfacePrimary               // neutral150 (light) / neutral900 (dark)
 private let chatAskButtonGreen = AppColors.accentGreen
 private let chatDisclaimerGray = AppColors.neutral500
 
@@ -35,6 +35,7 @@ struct ChatView: View {
     @State private var showVoiceInput = false
     @State private var showCamera = false
     @State private var showPhotoLibrary = false
+    @State private var showChatPhotoSourcePicker = false
     @State private var saveToastMessage: String?
     @State private var shareSheetText: String?
     @State private var showTextInput = false
@@ -48,6 +49,7 @@ struct ChatView: View {
         conversationId: String? = nil,
         imageUri: String? = nil,
         transcriptionId: String? = nil,
+        audioFileURL: URL? = nil,
         preGeneratedAnswer: String? = nil,
         followUpQuestions: [String] = [],
         homeStatementId: String? = nil,
@@ -65,6 +67,7 @@ struct ChatView: View {
             conversationId: conversationId,
             prefillQuestion: question,
             transcriptionId: transcriptionId,
+            prefillAudioURL: audioFileURL,
             preGeneratedAnswer: preGeneratedAnswer,
             followUpQuestions: followUpQuestions,
             homeStatementId: homeStatementId,
@@ -77,7 +80,13 @@ struct ChatView: View {
     private var isFromHistory: Bool { conversationId != nil }
 
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack {
+            // Fills the full screen including safe areas (top status bar + bottom indicator).
+            // VStack content sits within safe-area bounds, so the only place this green
+            // shows through is the status bar region — matching the LogoAppBar's green.
+            // (Same pattern as HomeView.swift.)
+            BrandColors.surfacePrimary.ignoresSafeArea()
+            VStack(spacing: 0) {
             // UI_CHAT.md §3 — LogoAppBar: entry-source drives left icon,
             // logo fades in only when a thread has content (hidden during initial load + error).
             LogoAppBar(
@@ -91,31 +100,55 @@ struct ChatView: View {
                     }
                 }
             )
-            // UI_CHAT.md §5.3 — initial fetch error (no messages yet) uses FullScreenMessage;
+            // UI_CHAT.md §5.3 — initial fetch error (no messages yet): red circle X + label + grey capsule retry.
             // follow-up errors use the inline banner (UI_CHAT.md §5.4) above an existing thread.
-            if viewModel.messages.isEmpty, let err = viewModel.errorMessage {
-                FullScreenMessage(
-                    title: "",
-                    mainMessage: "Something went wrong",
-                    subtitle: err,
-                    primaryCtaLabel: "Try again",
-                    primaryCtaState: .chevron,
-                    onPrimaryCta: {
+            if viewModel.messages.isEmpty, let _ = viewModel.errorMessage {
+                Spacer()
+                VStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .fill(AppColors.red500)
+                            .frame(width: 64, height: 64)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundStyle(AppColors.white)
+                    }
+                    Text(PreferencesManager.shared.label("fc_v2_app_label_cant_load_right_now", fallback: "Can't get the answer right now"))
+                        .font(AppTypography.titleMedium())
+                        .foregroundStyle(ContentColors.foregroundPrimary)
+                        .multilineTextAlignment(.center)
+                    Button {
                         viewModel.clearError()
                         Task { await viewModel.loadIfNeeded() }
-                    },
-                    illustration: "farmer_looking_at_sky",
-                    enableDebounce: true
-                )
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 14, weight: .medium))
+                            Text(PreferencesManager.shared.label("fc_v2_app_label_try_again", fallback: "Try again"))
+                                .font(AppTypography.labelMedium())
+                        }
+                        .foregroundStyle(ContentColors.foregroundPrimary)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(AppColors.neutral200)
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 32)
+                Spacer()
+                inputBar
             } else {
                 messagesList
                 if viewModel.isLoading {
                     TipsCarousel(tips: answerGenerationTips())
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
-                        .background(AppColors.adaptiveGroupedBackground)
+                        .frame(maxWidth: .infinity)
+                        .background(ContentColors.surfaceReadingPrimary)
+                } else {
+                    inputBar
                 }
-                inputBar
             }
         }
         .id(conversationId ?? "home")
@@ -141,6 +174,59 @@ struct ChatView: View {
         }
         .onChange(of: question) { _, new in
             if let q = new, !q.isEmpty { viewModel.prefill(q) }
+        }
+        .onChange(of: isInputFocused) { _, focused in
+            if !focused && inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                showTextInput = false
+            }
+        }
+        .sheet(isPresented: $showChatPhotoSourcePicker) {
+            VStack(spacing: 0) {
+                HStack(spacing: 16) {
+                    Button {
+                        showChatPhotoSourcePicker = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { showCamera = true }
+                    } label: {
+                        VStack(spacing: 10) {
+                            Image(systemName: "camera")
+                                .font(.system(size: 28))
+                                .foregroundStyle(AppColors.adaptiveSecondaryLabel)
+                            Text(PreferencesManager.shared.label("fc_v2_app_label_camera", fallback: "Camera"))
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(AppColors.adaptiveLabel)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 100)
+                        .background(AppColors.adaptiveFill)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        showChatPhotoSourcePicker = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { showPhotoLibrary = true }
+                    } label: {
+                        VStack(spacing: 10) {
+                            Image(systemName: "photo.on.rectangle")
+                                .font(.system(size: 28))
+                                .foregroundStyle(AppColors.adaptiveSecondaryLabel)
+                            Text(PreferencesManager.shared.label("fc_v2_app_label_photos", fallback: "Photos"))
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(AppColors.adaptiveLabel)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 100)
+                        .background(AppColors.adaptiveFill)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 24)
+                .padding(.bottom, 32)
+            }
+            .presentationDetents([.height(180)])
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showVoiceInput) {
             VoiceInputSheet(
@@ -181,10 +267,10 @@ struct ChatView: View {
             if let msg = saveToastMessage, !msg.isEmpty {
                 Text(msg)
                     .font(AppTypography.labelMedium())
-                    .foregroundStyle(AppColors.onboardingWhite)
+                    .foregroundStyle(AppColors.white)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
-                    .background(chatActionGreen)
+                    .background(AppColors.neutral800)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .padding(.bottom, 24)
             }
@@ -194,6 +280,7 @@ struct ChatView: View {
                 photoInputBar
             }
         }
+        } // ZStack
     }
 
     private func sendImageFromUIImage(_ image: UIImage, query: String? = nil) async {
@@ -230,7 +317,7 @@ struct ChatView: View {
                 }
 
                 HStack(spacing: 10) {
-                    TextField("Ask about your farm...", text: $photoCaption, axis: .vertical)
+                    TextField(PreferencesManager.shared.label("fc_v2_app_label_ask_about_your_farm", fallback: "Ask about your farm..."), text: $photoCaption, axis: .vertical)
                         .focused($isCaptionFocused)
                         .textFieldStyle(.plain)
                         .font(AppTypography.bodyMedium())
@@ -244,7 +331,7 @@ struct ChatView: View {
                         photoCaption = ""
                         Task { await sendImageFromUIImage(img, query: caption.isEmpty ? nil : caption) }
                     } label: {
-                        Image(systemName: "arrow.up")
+                        Image(systemName: "chevron.right")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(.white)
                             .frame(width: 40, height: 40)
@@ -271,7 +358,7 @@ struct ChatView: View {
                 Text(message)
                     .font(AppTypography.bodySmall())
                     .foregroundStyle(AppColors.adaptiveLabel)
-                Button("Try again") {
+                Button(PreferencesManager.shared.label("fc_v2_app_label_try_again", fallback: "Try again")) {
                     viewModel.clearError()
                     Task { await viewModel.loadIfNeeded() }
                 }
@@ -308,7 +395,7 @@ struct ChatView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .scrollDismissesKeyboard(.interactively)
-            .background(AppColors.adaptiveGroupedBackground)
+            .background(ContentColors.surfaceReadingPrimary)
             // Android ChatThreadContent.kt:164-208 — when a follow-up user message is sent,
             // anchor it to the TOP of the viewport (not the bottom), pushing the prior AI
             // answer above the fold. Gives the fresh-conversation feel the user expects.
@@ -376,32 +463,36 @@ struct ChatView: View {
                         saveToast: $saveToastMessage,
                         shareItems: $shareSheetText
                     )
-                    HStack(spacing: 8) {
-                        Image(systemName: "lightbulb.fill")
+                    HStack(spacing: 6) {
+                        Image(systemName: "info.circle.fill")
                             .font(.system(size: 12))
-                            .foregroundStyle(AppColors.authHeaderGreen)
-                            .frame(width: 24, height: 24)
-                            .background(AppColors.accentGreen.opacity(0.15))
-                            .clipShape(Circle())
-                        Text("AI may be wrong. Please double-check.")
-                            .font(AppTypography.caption())
+                            .foregroundStyle(AppColors.adaptiveSecondaryLabel)
+                        Text(PreferencesManager.shared.label("fc_v2_app_label_tips_ai_may_be_wrong_please_double_check", fallback: "AI may be wrong. Please double-check."))
+                            .font(AppTypography.bodySmall())
                             .foregroundStyle(AppColors.adaptiveSecondaryLabel)
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(AppColors.adaptiveFill)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
             }
-            if showResponseExtras, let followUps = viewModel.followUps(for: msg.id), !followUps.isEmpty {
-                relatedQuestionsSection(followUps: followUps)
+            if showResponseExtras {
+                if viewModel.loadingFollowUpIds.contains(msg.id) {
+                    LogoSpinner(
+                        type: .horizontal,
+                        label: PreferencesManager.shared.label("fc_v2_app_label_loading_more", fallback: "Loading..."),
+                        continuous: true
+                    )
+                    .scaleEffect(0.65)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 4)
+                } else if let followUps = viewModel.followUps(for: msg.id), !followUps.isEmpty {
+                    relatedQuestionsSection(followUps: followUps)
+                }
             }
             // Android ChatResponseActions.kt:172-178 — hint lives inside ChatResponseActions,
             // so it disappears with everything else while loading.
             if !msg.isUser, !(msg.content ?? "").isEmpty, showResponseExtras {
                 let hasFollowUps = !(viewModel.followUps(for: msg.id) ?? []).isEmpty
-                Text(hasFollowUps ? "Or ask a follow-up question 👇" : "Ask a follow-up question 👇")
+                Text(hasFollowUps ? PreferencesManager.shared.label("fc_v2_app_label_or_ask_a_followup_questions", fallback: "Or ask a follow-up question 👇") : PreferencesManager.shared.label("fc_v2_app_label_or_ask_a_followup_questions", fallback: "Ask a follow-up question 👇"))
                     .font(AppTypography.bodyMedium())
                     .foregroundStyle(AppColors.adaptiveLabel)
                     .frame(maxWidth: .infinity)
@@ -414,12 +505,12 @@ struct ChatView: View {
         Button {
             Task { await viewModel.replacePreGeneratedWithQuestion(pregenMessageId: pregenMessageId) }
         } label: {
-            Text("Read full advice")
+            Text(PreferencesManager.shared.label("fc_v2_app_label_read_full_advice", fallback: "Read full advice"))
                 .font(AppTypography.labelLarge())
                 .foregroundStyle(AppColors.onboardingWhite)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(chatActionGreen)
+                .background(AppColors.authButtonDarkGreen)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
@@ -441,14 +532,13 @@ struct ChatView: View {
                             .scaleEffect(0.7)
                             .frame(width: 14, height: 14)
                     } else if isThisPlaying {
-                        Image(systemName: "speaker.wave.3.fill")
+                        Image(systemName: "pause.fill")
                             .font(.system(size: 14))
-                            .symbolEffect(.variableColor.iterative, options: .repeating, isActive: true)
                     } else {
                         Image(systemName: "speaker.wave.2.fill")
                             .font(.system(size: 14))
                     }
-                    Text(isThisPlaying ? "Pause" : "Listen")
+                    Text(isThisPlaying ? "Pause" : PreferencesManager.shared.label("fc_v2_app_label_listen", fallback: "Listen"))
                         .font(AppTypography.labelSmall())
                 }
                 .foregroundStyle(AppColors.onboardingWhite)
@@ -481,7 +571,7 @@ struct ChatView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 14))
-                    Text("Share")
+                    Text(PreferencesManager.shared.label("fc_v2_app_label_share_download", fallback: "Share"))
                         .font(AppTypography.labelSmall())
                 }
                 .foregroundStyle(AppColors.onboardingWhite)
@@ -496,19 +586,32 @@ struct ChatView: View {
                 Task { @MainActor in
                     let photo = await resolveSharePhoto(image: userImage, url: userImageUrl)
                     guard let image = renderShareCardImage(question: question, answer: answer, photo: photo) else {
-                        saveToast.wrappedValue = "Failed to save"
+                        saveToast.wrappedValue = PreferencesManager.shared.label("fc_v2_app_label_failed_to_save", fallback: "Failed to save")
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { saveToast.wrappedValue = nil }
                         return
                     }
-                    let ok = await saveImageToPhotos(image)
-                    saveToast.wrappedValue = ok ? "Saved to gallery" : "Failed to save"
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { saveToast.wrappedValue = nil }
+                    switch await saveImageToPhotos(image) {
+                    case .saved:
+                        saveToast.wrappedValue = PreferencesManager.shared.label("fc_v2_app_label_saved_to_gallery", fallback: "Saved to gallery")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { saveToast.wrappedValue = nil }
+                    case .denied:
+                        saveToast.wrappedValue = PreferencesManager.shared.label("fc_v2_app_label_photo_permission_denied", fallback: "Photo access denied. Enable in Settings.")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            saveToast.wrappedValue = nil
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        }
+                    case .failed:
+                        saveToast.wrappedValue = PreferencesManager.shared.label("fc_v2_app_label_failed_to_save", fallback: "Failed to save")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { saveToast.wrappedValue = nil }
+                    }
                 }
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.down.circle.fill")
                         .font(.system(size: 14))
-                    Text("Save")
+                    Text(PreferencesManager.shared.label("fc_v2_app_label_save", fallback: "Save"))
                         .font(AppTypography.labelSmall())
                 }
                 .foregroundStyle(AppColors.onboardingWhite)
@@ -524,8 +627,8 @@ struct ChatView: View {
 
     private func relatedQuestionsSection(followUps: [FollowUpItem]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Related questions")
-                .font(.system(size: 17, weight: .bold))
+            Text(PreferencesManager.shared.label("fc_v2_app_label_related_questions", fallback: "Related questions"))
+                .font(AppTypography.titleSmall())
                 .foregroundStyle(AppColors.adaptiveLabel)
             VStack(spacing: 10) {
                 ForEach(followUps) { item in
@@ -539,13 +642,13 @@ struct ChatView: View {
                         Button {
                             Task { await viewModel.sendFollowUp(question: item.question, followUpQuestionId: item.followUpQuestionId) }
                         } label: {
-                            Text("Ask")
+                            Text(PreferencesManager.shared.label("fc_v2_app_label_ask", fallback: "Ask"))
                                 .font(AppTypography.labelMedium())
                                 .foregroundStyle(AppColors.onboardingWhite)
-                                .padding(.horizontal, 18)
-                                .padding(.vertical, 8)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 6)
                                 .background(chatAskButtonGreen)
-                                .clipShape(Capsule())
+                                .clipShape(RoundedRectangle(cornerRadius: Radius.sm))
                         }
                         .buttonStyle(.plain)
                     }
@@ -553,7 +656,6 @@ struct ChatView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(chatRelatedCardBg)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(AppColors.accentGreen.opacity(0.4), lineWidth: 1))
                 }
             }
         }
@@ -582,121 +684,146 @@ struct ChatView: View {
     private var inputBar: some View {
         VStack(spacing: 0) {
             if showTextInput {
-                HStack(spacing: 12) {
-                    TextField("Type your question...", text: $inputText, axis: .vertical)
+                let hasText = !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                HStack(spacing: 10) {
+                    // Camera — hidden when text is present
+                    if !hasText {
+                        Button { showChatPhotoSourcePicker = true } label: {
+                            ZStack {
+                                Circle().fill(chatActionBarGreen).frame(width: 48, height: 48)
+                                Image(systemName: "camera.fill")
+                                    .font(.system(size: 20, weight: .medium))
+                                    .foregroundStyle(AppColors.accentGreen)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    TextField(PreferencesManager.shared.label("fc_v2_app_label_ask_about_your_farm", fallback: "Ask about your farm..."), text: $inputText, axis: .vertical)
                         .focused($isInputFocused)
                         .textFieldStyle(.plain)
                         .font(AppTypography.bodyMedium())
-                        .padding(14)
-                        .background(AppColors.adaptiveSecondaryGroupedBackground)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(AppColors.adaptiveSeparator, lineWidth: 1)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                         .lineLimit(1...4)
-                        .onAppear { isInputFocused = true }
-                    Button("Send") {
-                        let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !text.isEmpty else { return }
-                        inputText = ""
-                        showTextInput = false
-                        Task { await viewModel.send(text) }
-                    }
-                    .font(AppTypography.labelLarge())
-                    .foregroundStyle(AppColors.onboardingWhite)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 14)
-                    .background(chatActionGreen)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(AppColors.adaptiveSecondaryGroupedBackground)
-            }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(ContentColors.surfacePrimary)
+                        .clipShape(Capsule())
 
-            HStack(spacing: 12) {
-                Menu {
+                    // Mic (empty) → Send (typing)
                     Button {
-                        showCamera = true
+                        let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !text.isEmpty {
+                            inputText = ""
+                            isInputFocused = false
+                            showTextInput = false
+                            Task { await viewModel.send(text) }
+                        } else {
+                            isInputFocused = false
+                            showTextInput = false
+                            showVoiceInput = true
+                        }
                     } label: {
-                        Label("Take Photo", systemImage: "camera")
-                    }
-                    Button {
-                        showPhotoLibrary = true
-                    } label: {
-                        Label("Choose from Library", systemImage: "photo.on.rectangle.angled")
-                    }
-                } label: {
-                    VStack(spacing: 6) {
-                        Image(systemName: "camera.fill")
-                            .font(.system(size: 24))
-                        Text("Photo")
-                            .font(AppTypography.labelSmall())
-                    }
-                    .foregroundStyle(AppColors.onboardingWhite)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(chatActionBarGreen)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                }
-                .buttonStyle(.plain)
-                Button {
-                    if PreferencesManager.shared.asrEnabled {
-                        showVoiceInput = true
-                    } else {
-                        let labels = PreferencesManager.shared.languageLabels
-                        let message = labels["ASR_DISABLED_FOR_SELECTED_LANGUAGE"]
-                            ?? "Voice input is not available for your selected language"
-                        saveToastMessage = message
-                        Task {
-                            try? await Task.sleep(nanoseconds: 3_000_000_000)
-                            if saveToastMessage == message { saveToastMessage = nil }
+                        ZStack {
+                            Circle().fill(chatActionBarGreen).frame(width: 48, height: 48)
+                            if hasText {
+                                Image("icon_send")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 20)
+                                    .foregroundStyle(AppColors.accentGreen)
+                            } else {
+                                Image(systemName: "mic.fill")
+                                    .font(.system(size: 20, weight: .medium))
+                                    .foregroundStyle(AppColors.accentGreen)
+                            }
                         }
                     }
-                } label: {
-                    VStack(spacing: 6) {
-                        Image(systemName: "mic.fill")
-                            .font(.system(size: 24))
-                        Text("Speak")
-                            .font(AppTypography.labelSmall())
-                    }
-                    .foregroundStyle(AppColors.onboardingWhite)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(chatActionBarGreen)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .buttonStyle(.plain)
+                    .disabled(hasText && viewModel.isLoading)
                 }
-                .buttonStyle(.plain)
-                Button {
-                    showTextInput = true
-                } label: {
-                    VStack(spacing: 6) {
-                        Image(systemName: "keyboard")
-                            .font(.system(size: 24))
-                        Text("Type")
-                            .font(AppTypography.labelSmall())
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color(.systemBackground))
+            } else {
+                HStack(spacing: 12) {
+                    // Photo — individual dark card
+                    Button { showChatPhotoSourcePicker = true } label: {
+                        VStack(spacing: 6) {
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 24))
+                                .foregroundStyle(AppColors.accentGreen)
+                            Text(PreferencesManager.shared.label("fc_v2_app_label_camera", fallback: "Photo"))
+                                .font(AppTypography.labelSmall())
+                                .foregroundStyle(AppColors.onboardingWhite)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 72)
+                        .background(chatActionBarGreen)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
-                    .foregroundStyle(AppColors.onboardingWhite)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(chatActionBarGreen)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .buttonStyle(.plain)
+
+                    // Speak — individual dark card
+                    Button {
+                        if PreferencesManager.shared.asrEnabled {
+                            showVoiceInput = true
+                        } else {
+                            let message = PreferencesManager.shared.label("fc_v2_app_label_asr_is_disabled_for_your_selected_language", fallback: "Voice input is not available for your selected language")
+                            saveToastMessage = message
+                            Task {
+                                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                                if saveToastMessage == message { saveToastMessage = nil }
+                            }
+                        }
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(systemName: "mic.fill")
+                                .font(.system(size: 24))
+                                .foregroundStyle(AppColors.accentGreen)
+                            Text(PreferencesManager.shared.label("fc_v2_app_label_speak", fallback: "Speak"))
+                                .font(AppTypography.labelSmall())
+                                .foregroundStyle(AppColors.onboardingWhite)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 72)
+                        .background(chatActionBarGreen)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
+
+                    // Type — individual dark card
+                    Button {
+                        showTextInput = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { isInputFocused = true }
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(systemName: "keyboard")
+                                .font(.system(size: 24))
+                                .foregroundStyle(AppColors.accentGreen)
+                            Text(PreferencesManager.shared.label("fc_v2_app_label_type", fallback: "Type"))
+                                .font(AppTypography.labelSmall())
+                                .foregroundStyle(AppColors.onboardingWhite)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 72)
+                        .background(chatActionBarGreen)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-            }
-            .padding(16)
-            .background(chatHeaderGreen)
-        }
-        .background(AppColors.adaptiveSecondaryGroupedBackground)
-        .onChange(of: isInputFocused) { _, focused in
-            if !focused && inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                showTextInput = false
+                .padding(.horizontal, 12)
+                .padding(.vertical, 12)
+                .background(BrandColors.surfacePrimary)
             }
         }
     }
 }
+
+private let voiceWaveformHeights: [CGFloat] = [
+    0.4, 0.6, 0.8, 0.5, 0.9, 0.7, 0.5, 0.3, 0.6, 0.8,
+    0.5, 0.7, 0.4, 0.9, 0.6, 0.8, 0.5, 0.3, 0.7, 0.5,
+    0.6, 0.4, 0.8, 0.6, 0.4
+]
 
 struct ChatBubble: View {
     let message: ChatMessageDisplay
@@ -704,6 +831,7 @@ struct ChatBubble: View {
     var onListen: (() -> Void)? = nil
     @State private var audioPlayer: AVAudioPlayer?
     @State private var isPlayingAudio = false
+    @State private var audioDuration: Double = 0
 
     var body: some View {
         HStack(alignment: .top) {
@@ -739,34 +867,55 @@ struct ChatBubble: View {
                                 .frame(maxWidth: 220, maxHeight: 220)
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-                        if let text = message.content, !text.isEmpty {
-                            Text(text)
-                                .font(AppTypography.bodyMedium())
-                                .foregroundStyle(AppColors.adaptiveLabel)
-                                .frame(maxWidth: .infinity, alignment: message.wideBannerImage ? .leading : .trailing)
-                                .padding(.horizontal, message.wideBannerImage ? 10 : 0)
-                                .padding(.bottom, message.wideBannerImage ? 6 : 0)
-                        }
                         if message.audioURL != nil {
-                            Button {
-                                toggleAudioPlayback()
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: isPlayingAudio ? "stop.fill" : "play.fill")
-                                        .font(.system(size: 12))
-                                    Text(isPlayingAudio ? "Stop" : "Play audio")
-                                        .font(.system(size: 12, weight: .medium))
+                            // Android-style voice player: play button + waveform + duration
+                            HStack(spacing: 10) {
+                                Button { toggleAudioPlayback() } label: {
+                                    ZStack {
+                                        Circle()
+                                            .fill(AppColors.accentGreen)
+                                            .frame(width: 40, height: 40)
+                                        Image(systemName: isPlayingAudio ? "stop.fill" : "play.fill")
+                                            .font(.system(size: 14, weight: .bold))
+                                            .foregroundStyle(.white)
+                                            .offset(x: isPlayingAudio ? 0 : 1)
+                                    }
                                 }
-                                .foregroundStyle(AppColors.authButtonDarkGreen)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(AppColors.accentGreen.opacity(0.15))
-                                .clipShape(Capsule())
+                                .buttonStyle(.plain)
+                                HStack(alignment: .center, spacing: 2) {
+                                    ForEach(0..<voiceWaveformHeights.count, id: \.self) { i in
+                                        RoundedRectangle(cornerRadius: 1)
+                                            .fill(Color.gray.opacity(0.45))
+                                            .frame(width: 2.5, height: voiceWaveformHeights[i] * 28)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                                Text(formatAudioDuration(audioDuration))
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(ContentColors.foregroundSecondary)
+                                    .monospacedDigit()
+                                    .fixedSize()
                             }
-                            .buttonStyle(.plain)
+                            if let text = message.content, !text.isEmpty {
+                                Text(text)
+                                    .font(AppTypography.bodyMedium())
+                                    .foregroundStyle(AppColors.adaptiveLabel)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .multilineTextAlignment(.leading)
+                            }
+                        } else {
+                            if let text = message.content, !text.isEmpty {
+                                Text(text)
+                                    .font(AppTypography.bodyMedium())
+                                    .foregroundStyle(AppColors.adaptiveLabel)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .multilineTextAlignment(.leading)
+                                    .padding(.horizontal, message.wideBannerImage ? 10 : 0)
+                                    .padding(.bottom, message.wideBannerImage ? 6 : 0)
+                            }
                         }
                     }
-                    .padding(message.image != nil || message.wideBannerImage ? 6 : 16)
+                    .padding(message.wideBannerImage ? 6 : (message.image != nil && message.audioURL == nil) ? 6 : 16)
                     .background(chatUserBubbleBg)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                     .shadow(color: Color.black.opacity(0.06), radius: 4, y: 2)
@@ -775,12 +924,14 @@ struct ChatBubble: View {
                         text: message.content ?? "",
                         textColor: AppColors.adaptiveLabel
                     )
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
                 }
             }
             .frame(maxWidth: .infinity, alignment: message.isUser ? .trailing : .leading)
             if !message.isUser { Spacer(minLength: 48) }
         }
+        .onAppear { loadAudioDuration() }
     }
 
     private func toggleAudioPlayback() {
@@ -797,6 +948,7 @@ struct ChatBubble: View {
             audioPlayer?.play()
             isPlayingAudio = true
             let duration = audioPlayer?.duration ?? 0
+            if audioDuration == 0 { audioDuration = duration }
             if duration > 0 {
                 DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.1) {
                     isPlayingAudio = false
@@ -805,6 +957,18 @@ struct ChatBubble: View {
         } catch {
             print("[Chat] Audio playback failed: \(error)")
         }
+    }
+
+    private func loadAudioDuration() {
+        guard audioDuration == 0, let url = message.audioURL,
+              let player = try? AVAudioPlayer(contentsOf: url) else { return }
+        audioDuration = player.duration
+    }
+
+    private func formatAudioDuration(_ seconds: Double) -> String {
+        guard seconds > 0 else { return "0:00" }
+        let total = Int(seconds)
+        return "\(total / 60):\(String(format: "%02d", total % 60))"
     }
 }
 
@@ -839,11 +1003,7 @@ struct FollowUpChips: View {
 struct LoadingPlaceholderView: View {
     var body: some View {
         HStack(spacing: 10) {
-            ProgressView()
-                .tint(AppColors.authHeaderGreen)
-            Text("Getting your answer...")
-                .font(AppTypography.bodySmall())
-                .foregroundStyle(AppColors.authHeaderGreen)
+            LogoSpinner(type: .horizontal, color: AppColors.green500, label: PreferencesManager.shared.label("fc_v2_app_label_getting_your_answer", fallback: "Getting your answer..."), continuous: true)
             Spacer()
         }
         .padding(14)
@@ -922,8 +1082,10 @@ final class ChatViewModel {
     private var conversationId: String?
     private let chatUseCase = ChatUseCase()
     private var prefillQuestion: String?
+    private var prefillAudioURL: URL?
     private var lastAnswerMessageId: String?
     private var pendingFollowUps: [String: [FollowUpItem]] = [:]
+    var loadingFollowUpIds: Set<String> = []
     /// From transcribe_audio; when set, send get_answer with triggered_input_type "audio" and transcription_id.
     private var transcriptionId: String?
     /// Pre-generated content from Home feed card (no API call until user taps "Read full advice" or follow-up).
@@ -949,6 +1111,7 @@ final class ChatViewModel {
         conversationId: String?,
         prefillQuestion: String?,
         transcriptionId: String? = nil,
+        prefillAudioURL: URL? = nil,
         preGeneratedAnswer: String? = nil,
         followUpQuestions: [String] = [],
         homeStatementId: String? = nil,
@@ -959,6 +1122,7 @@ final class ChatViewModel {
         self.pregenHeroImageUri = pregenHeroImageUri
         self.prefillQuestion = prefillQuestion
         self.transcriptionId = transcriptionId
+        self.prefillAudioURL = prefillAudioURL
         self.preGeneratedAnswer = preGeneratedAnswer
         self.homeStatementId = homeStatementId
         self.isWeatherAdviceCTA = isWeatherAdviceCTA
@@ -1032,7 +1196,12 @@ final class ChatViewModel {
             return
         }
         if let q = prefillQuestion, !q.isEmpty {
-            await send(q)
+            if let audioURL = prefillAudioURL {
+                prefillAudioURL = nil
+                await sendVoice(text: q, transcriptionId: transcriptionId, audioURL: audioURL)
+            } else {
+                await send(q)
+            }
         }
     }
 
@@ -1045,6 +1214,7 @@ final class ChatViewModel {
 
     func send(_ text: String) async {
         guard !isLoading else { return }
+        clearAudioPlayback()
         if conversationId == nil {
             if let fromPrefs = PreferencesManager.shared.newConversationId {
                 conversationId = fromPrefs
@@ -1075,13 +1245,13 @@ final class ChatViewModel {
         }
         messages = messages + [ChatMessageDisplay(id: UUID().uuidString, content: queryToSend, isUser: true)]
         isLoading = true
+        defer { isLoading = false }
 
         // Android ChatViewModel.kt:784 — client generates a UUID per message for server-side deduplication.
         let messageIdForThisRequest = UUID().uuidString
         let triggeredType = transcriptionId != nil ? "audio" : "text"
         do {
             let res = try await chatUseCase.getAnswerForTextQuery(conversationId: cid, query: queryToSend, messageId: messageIdForThisRequest, triggeredInputType: triggeredType, transcriptionId: transcriptionId, statementId: statementIdToSend, weatherCtaTriggered: weatherCta)
-            isLoading = false
             let thisResponseMessageId = (res.message_id?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 }
             print("[Chat] get_answer response message_id: \(thisResponseMessageId ?? "nil")")
             lastAnswerMessageId = thisResponseMessageId
@@ -1109,7 +1279,6 @@ final class ChatViewModel {
                 fireFollowUpFetch(messageId: mid, displayId: displayId)
             }
         } catch {
-            isLoading = false
             var failProps = sendProps
             failProps[AnalyticsConstants.Property.validQuery] = false
             // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.sendQuery, properties: failProps, adjustToken: AnalyticsConstants.AdjustToken.sendQuery)
@@ -1139,9 +1308,9 @@ final class ChatViewModel {
         }
         guard let cid = conversationId else { return }
         isLoading = true
+        defer { isLoading = false }
         do {
             let res = try await chatUseCase.getAnswerForTextQuery(conversationId: cid, query: text, messageId: UUID().uuidString, triggeredInputType: "audio", transcriptionId: transcriptionId, statementId: nil, weatherCtaTriggered: false)
-            isLoading = false
             self.transcriptionId = nil
             let thisResponseMessageId = (res.message_id?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 }
             lastAnswerMessageId = thisResponseMessageId
@@ -1161,7 +1330,6 @@ final class ChatViewModel {
                 fireFollowUpFetch(messageId: mid, displayId: displayId)
             }
         } catch {
-            isLoading = false
             self.transcriptionId = nil
             errorMessage = error.localizedDescription
         }
@@ -1184,9 +1352,9 @@ final class ChatViewModel {
         return true
     }
 
-    /// "Read full advice" tap (CHAT_SCREEN.md §2.3 F, §8.6). APPENDS a duplicate user
-    /// bubble and loading; does NOT replace the pre-gen pair. Sends
-    /// triggered_input_type="read_full_advice" + statement_id=homeStatementId.
+    /// "Read full advice" tap (CHAT_SCREEN.md §2.3 F, §8.6). Removes the pre-gen AI
+    /// answer so the original user bubble stays and the full answer loads in its place.
+    /// Sends triggered_input_type="read_full_advice" + statement_id=homeStatementId.
     func replacePreGeneratedWithQuestion(pregenMessageId: String) async {
         guard !isLoading else { return }
         guard canShowReadFullAdvice(for: pregenMessageId) else { return }
@@ -1214,11 +1382,11 @@ final class ChatViewModel {
         let statementId = homeStatementId
         homeStatementId = nil
 
-        // Clear the pre-gen pair so the full-advice request looks like a fresh chat
-        // (user asked for "fresh question at the top" — no old summary visible).
-        let freshUserMsgId = UUID().uuidString
-        messages = [ChatMessageDisplay(id: freshUserMsgId, content: question, isUser: true)]
+        // Drop the pre-gen answer — the original user bubble stays in place.
+        // The full answer will be appended below it, giving a clean single Q&A.
+        messages = messages.filter { $0.id != pregenMessageId }
         isLoading = true
+        defer { isLoading = false }
         do {
             let res = try await chatUseCase.getAnswerForTextQuery(
                 conversationId: cid,
@@ -1229,7 +1397,6 @@ final class ChatViewModel {
                 statementId: statementId,
                 weatherCtaTriggered: false
             )
-            isLoading = false
             let thisResponseMessageId = (res.message_id?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 }
             lastAnswerMessageId = thisResponseMessageId
             let displayId = thisResponseMessageId ?? UUID().uuidString
@@ -1250,7 +1417,6 @@ final class ChatViewModel {
                 fireFollowUpFetch(messageId: mid, displayId: displayId)
             }
         } catch {
-            isLoading = false
             errorMessage = error.localizedDescription
         }
     }
@@ -1289,8 +1455,10 @@ final class ChatViewModel {
     }
 
     private func fireFollowUpFetch(messageId: String, displayId: String) {
+        loadingFollowUpIds.insert(displayId)
         Task { @MainActor [weak chatUseCase] in
             guard let chatUseCase else { return }
+            defer { self.loadingFollowUpIds.remove(displayId) }
             do {
                 let fuRes = try await chatUseCase.followUpQuestions(messageId: messageId, useLatestPrompt: true)
                 let qs = fuRes.questions ?? []
@@ -1401,14 +1569,14 @@ final class ChatViewModel {
         }
         guard let cid = conversationId else { return }
         let queryText = query?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let userLabel = queryText.isEmpty ? "What's wrong with my crop?" : queryText
+        let userLabel = queryText.isEmpty ? PreferencesManager.shared.label("fc_v2_app_label_ask_about_your_farm", fallback: "What's wrong with my crop?") : queryText
         messages = messages + [ChatMessageDisplay(id: UUID().uuidString, content: userLabel, isUser: true, image: originalImage)]
         isLoading = true
+        defer { isLoading = false }
         let lat = PreferencesManager.shared.lastKnownLat.map { "\($0)" }
         let lng = PreferencesManager.shared.lastKnownLng.map { "\($0)" }
         do {
             let res = try await chatUseCase.imageAnalysis(conversationId: cid, imageBase64: imageBase64, imageName: imageName, query: queryText.isEmpty ? nil : queryText, latitude: lat, longitude: lng, retry: false)
-            isLoading = false
             let msgId = res.message_id
             let ans = res.response
             let imageDisplayId = UUID().uuidString
@@ -1419,16 +1587,15 @@ final class ChatViewModel {
                 fireFollowUpFetch(messageId: mid, displayId: imageDisplayId)
             }
         } catch {
-            isLoading = false
             errorMessage = error.localizedDescription
         }
     }
 
     private func loadHistory(_ cid: String) async {
         isLoading = true
+        defer { isLoading = false }
         do {
             let res = try await chatUseCase.conversationChatHistory(conversationId: cid, page: 1)
-            isLoading = false
             conversationId = cid
             var outMessages: [ChatMessageDisplay] = []
             var outIndex = 0
@@ -1456,7 +1623,6 @@ final class ChatViewModel {
                 lastAnswerMessageId = lastWithResponse.message_id
             }
         } catch {
-            isLoading = false
             errorMessage = error.localizedDescription
         }
     }
@@ -1468,7 +1634,11 @@ private let shareCardWidth: CGFloat = 500
 private let shareCardHeight: CGFloat = 700
 // Brand Green700 (matches Android brand.surfacePrimary used for the footer slab).
 private let shareCardFooterGreen = Color(hex: 0xFF115E2B)
-private let shareCaption = "Sharing what FarmerChat taught me—super useful. Give it a try on the App Store!"
+private let shareAppStoreLink = "https://apps.apple.com/app/farmerchat/id6670191002"
+private var shareCaption: String {
+    let base = PreferencesManager.shared.label("fc_v2_app_label_share_app_message", fallback: "Sharing what FarmerChat taught me—super useful. Give it a try on the App Store!")
+    return "\(base)\n\(shareAppStoreLink)"
+}
 
 /// Branded share card — Android parity (ShareCard.kt):
 /// optional photo banner → large black title → markdown body → green footer with logo + tagline.
@@ -1483,36 +1653,41 @@ private struct ShareCardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if let photo {
-                Image(uiImage: photo)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: (shareCardWidth - 32) / 1.85) // Android aspectRatio(1.85)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
-            }
+            // Content capped so footer is always visible at the bottom
+            VStack(spacing: 0) {
+                if let photo {
+                    Image(uiImage: photo)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: (shareCardWidth - 32) / 1.85) // Android aspectRatio(1.85)
+                        .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+                }
 
-            VStack(alignment: .leading, spacing: hasPhoto ? 14 : 16) {
-                Text(String(question.prefix(titleLimit)))
-                    .font(.system(size: hasPhoto ? 24 : 28, weight: .semibold))
-                    .foregroundStyle(.black)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: hasPhoto ? 14 : 16) {
+                    Text(String(question.prefix(titleLimit)))
+                        .font(.system(size: hasPhoto ? 24 : 28, weight: .semibold))
+                        .foregroundStyle(.black)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                MarkdownTextView(
-                    text: String(answer.prefix(bodyLimit)),
-                    textColor: .black
-                )
+                    MarkdownTextView(
+                        text: String(answer.prefix(bodyLimit)),
+                        textColor: .black
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 32)
-            .padding(.top, hasPhoto ? 20 : 32)
-            .padding(.bottom, 32)
+                .padding(.horizontal, 32)
+                .padding(.top, hasPhoto ? 20 : 32)
+                .padding(.bottom, 32)
 
-            Spacer(minLength: 0)
+                Spacer(minLength: 0)
+            }
+            .frame(maxHeight: shareCardHeight - 96)
+            .clipped()
 
             // Footer — brand green bar, logo wordmark + tagline (Android ShareCardFooter)
             HStack(alignment: .center) {
@@ -1586,9 +1761,11 @@ private func writeShareCardToCache(image: UIImage) -> URL? {
     }
 }
 
-/// Save image to Photos library. Uses PHPhotoLibrary so we actually get a success/failure
-/// signal and handle authorization (Android parity: returns Boolean success for toast).
-private func saveImageToPhotos(_ image: UIImage) async -> Bool {
+private enum SavePhotoResult { case saved, denied, failed }
+
+/// Save image to Photos library. Returns .denied when the user has blocked access so the
+/// caller can show a targeted toast and redirect to Settings instead of a generic error.
+private func saveImageToPhotos(_ image: UIImage) async -> SavePhotoResult {
     let status: PHAuthorizationStatus
     if #available(iOS 14, *) {
         status = await withCheckedContinuation { cont in
@@ -1599,14 +1776,15 @@ private func saveImageToPhotos(_ image: UIImage) async -> Bool {
             PHPhotoLibrary.requestAuthorization { cont.resume(returning: $0) }
         }
     }
-    guard status == .authorized || status == .limited else { return false }
-    return await withCheckedContinuation { cont in
+    guard status == .authorized || status == .limited else { return .denied }
+    let ok = await withCheckedContinuation { cont in
         PHPhotoLibrary.shared().performChanges({
             PHAssetChangeRequest.creationRequestForAsset(from: image)
         }) { success, _ in
             cont.resume(returning: success)
         }
     }
+    return ok ? .saved : .failed
 }
 
 // MARK: - Share sheet
@@ -1741,30 +1919,31 @@ struct VoiceInputSheet: View {
     @State private var isProcessing = false
     @State private var errorMessage: String?
     @State private var audioRecorder: AVAudioRecorder?
-    @State private var audioLevels: [CGFloat] = Array(repeating: 0.15, count: 40)
+    @State private var audioLevels: [CGFloat] = Array(repeating: 0.15, count: 36)
     @State private var elapsedSeconds: Int = 0
+    @State private var timerBlinkVisible = true
     @State private var durationTimer: Timer?
     @State private var meterTimer: Timer?
     @State private var audioFileURL: URL?
     private let maxDuration: Int = 30
     private let chatUseCase = ChatUseCase()
 
+    private var remaining: Int { maxDuration - elapsedSeconds }
+
     private var titleText: String {
-        if isProcessing { return "Processing..." }
-        if isRecording { return "Listening..." }
-        return "Tap to speak"
+        if isProcessing { return PreferencesManager.shared.label("fc_v2_app_label_processing", fallback: "Processing...") }
+        return PreferencesManager.shared.label("fc_v2_app_label_listening", fallback: "Speak now")
     }
 
     private var subtitleText: String {
-        if isProcessing { return "One second, please." }
-        if isRecording { return "Speak now" }
+        if isProcessing { return PreferencesManager.shared.label("fc_v2_app_label_one_second_please", fallback: "One second, please...") }
         if let err = errorMessage { return err }
-        return "Tap the microphone to start"
+        return PreferencesManager.shared.label("fc_v2_app_label_ask_your_farming_question", fallback: "Ask about your farm or livestock")
     }
 
     private var durationString: String {
-        let m = elapsedSeconds / 60
-        let s = elapsedSeconds % 60
+        let m = remaining / 60
+        let s = remaining % 60
         return String(format: "%d:%02d", m, s)
     }
 
@@ -1772,88 +1951,91 @@ struct VoiceInputSheet: View {
         VStack(spacing: 0) {
             Spacer()
 
-            VStack(spacing: 12) {
+            // Title + subtitle
+            VStack(spacing: 8) {
                 Text(titleText)
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(AppColors.adaptiveLabel)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(ContentColors.foregroundPrimary)
 
                 Text(subtitleText)
-                    .font(.system(size: 16))
-                    .foregroundStyle(errorMessage != nil && !isRecording && !isProcessing ? AppColors.error : AppColors.adaptiveSecondaryLabel)
+                    .font(AppTypography.bodyMedium())
+                    .foregroundStyle(errorMessage != nil && !isProcessing ? AppColors.error : ContentColors.foregroundSecondary)
                     .multilineTextAlignment(.center)
             }
             .padding(.bottom, 32)
 
+            // Controls: Delete | Waveform | Send
             HStack(spacing: 12) {
-                Button {
-                    handleCancel()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(AppColors.accentGreen)
-                        .frame(width: 52, height: 52)
-                        .background(AppColors.authButtonDarkGreen)
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-
-                ZStack {
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(Color.gray.opacity(0.12))
-
-                    HStack(spacing: 1.5) {
-                        ForEach(0..<audioLevels.count, id: \.self) { i in
-                            RoundedRectangle(cornerRadius: 1)
-                                .fill(AppColors.authButtonDarkGreen.opacity(0.6))
-                                .frame(width: 2.5, height: max(3, audioLevels[i] * 32))
-                        }
-
-                        Spacer().frame(width: 8)
-
-                        Text(durationString)
-                            .font(.system(size: 13, weight: .medium).monospacedDigit())
-                            .foregroundStyle(AppColors.adaptiveSecondaryLabel)
-                    }
-                    .padding(.horizontal, 12)
-                }
-                .frame(height: 48)
-
-                Button {
-                    handleConfirm()
-                } label: {
+                // Cancel (wrong mark)
+                Button { handleCancel() } label: {
                     ZStack {
-                        Circle()
-                            .fill(AppColors.authButtonDarkGreen)
-                            .frame(width: 52, height: 52)
-
-                        if isRecording && !isProcessing {
-                            Circle()
-                                .stroke(AppColors.accentGreen, lineWidth: 3)
-                                .frame(width: 58, height: 58)
-                                .opacity(0.5)
-                        }
-
-                        Image(systemName: isProcessing ? "hourglass" : (isRecording ? "checkmark" : "mic.fill"))
-                            .font(.system(size: 20, weight: .semibold))
+                        Circle().fill(AppColors.authButtonDarkGreen).frame(width: 40, height: 40)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 15, weight: .bold))
                             .foregroundStyle(AppColors.accentGreen)
                     }
                 }
                 .buttonStyle(.plain)
-                .disabled(isProcessing)
+
+                // Waveform + timer
+                ZStack {
+                    Capsule()
+                        .fill(ContentColors.surfacePrimary)
+
+                    HStack(alignment: .center, spacing: 2) {
+                        ForEach(0..<audioLevels.count, id: \.self) { i in
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(isProcessing ? Color(.systemGray4) : AppColors.accentGreen)
+                                .frame(width: 3, height: max(6, audioLevels[i] * 30))
+                        }
+                        Text(durationString)
+                            .font(.system(size: 13, weight: .medium).monospacedDigit())
+                            .foregroundStyle(isProcessing ? ContentColors.foregroundSecondary.opacity(0.5) : ContentColors.foregroundSecondary)
+                            .opacity(remaining <= 5 && isRecording ? (timerBlinkVisible ? 1 : 0) : 1)
+                            .frame(minWidth: 36, alignment: .trailing)
+                            .padding(.leading, 6)
+                    }
+                    .padding(.horizontal, 10)
+                }
+                .frame(height: 50)
+
+                // Confirm (tick)
+                Button { handleConfirm() } label: {
+                    ZStack {
+                        Circle()
+                            .fill(AppColors.authButtonDarkGreen)
+                            .frame(width: 40, height: 40)
+                        if isProcessing {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accentGreen))
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundStyle(AppColors.accentGreen)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(isProcessing || !isRecording)
             }
             .padding(.horizontal, 20)
 
             Spacer().frame(height: 32)
 
-            Text("Speak is a beta feature")
-                .font(.system(size: 13))
-                .foregroundStyle(AppColors.adaptiveSecondaryLabel)
+            // Footer
+            HStack(spacing: 6) {
+                Text(PreferencesManager.shared.label("fc_v2_app_label_voice_input_is_still_improving", fallback: "Voice feature is still improving,please record clear audio"))
+                    .font(AppTypography.bodySmall())
+                    .foregroundStyle(ContentColors.foregroundSecondary)
+                    .lineLimit(1)
+            }
 
             Spacer()
         }
-        .padding()
-        .background(AppColors.adaptiveGroupedBackground)
-        .presentationDetents([.medium])
+        .padding(.horizontal)
+        .background(Color(.systemBackground))
+        .presentationDetents([.height(320)])
         .presentationDragIndicator(.visible)
         .interactiveDismissDisabled(isProcessing)
         .onAppear { startRecording() }
@@ -1892,7 +2074,7 @@ struct VoiceInputSheet: View {
             session.requestRecordPermission { allowed in
                 DispatchQueue.main.async {
                     if allowed { startRecording() }
-                    else { errorMessage = "Microphone permission required." }
+                    else { errorMessage = PreferencesManager.shared.label("fc_v2_app_label_microphone_permission_is_required_for_voice_input", fallback: "Microphone permission required.") }
                 }
             }
             return
@@ -1932,10 +2114,19 @@ struct VoiceInputSheet: View {
         errorMessage = nil
         elapsedSeconds = 0
 
-        durationTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+        var halfTicks = 0
+        durationTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
             DispatchQueue.main.async {
-                elapsedSeconds += 1
-                if elapsedSeconds >= maxDuration { autoStopAndConfirm() }
+                halfTicks += 1
+                if halfTicks % 2 == 0 {
+                    elapsedSeconds += 1
+                    if elapsedSeconds >= maxDuration { autoStopAndConfirm() }
+                }
+                if (maxDuration - elapsedSeconds) <= 5 {
+                    timerBlinkVisible.toggle()
+                } else {
+                    timerBlinkVisible = true
+                }
             }
         }
 
@@ -1945,8 +2136,8 @@ struct VoiceInputSheet: View {
             let normalizedLevel = max(0.08, min(1.0, CGFloat((power + 50) / 50)))
             DispatchQueue.main.async {
                 withAnimation(.easeOut(duration: 0.06)) {
-                    audioLevels.removeFirst()
-                    audioLevels.append(normalizedLevel)
+                    audioLevels.removeLast()
+                    audioLevels.insert(normalizedLevel, at: 0)
                 }
             }
         }
@@ -2014,10 +2205,9 @@ struct VoiceInputSheet: View {
             let res = try await chatUseCase.transcribeAudio(conversationId: conversationId, audioBase64: base64, format: "aac")
 
             await MainActor.run {
-                let confidence = res.confidence_score ?? 0
                 let heardText = (res.heard_input_query ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 
-                if confidence > 0.7 && !heardText.isEmpty {
+                if !heardText.isEmpty {
                     // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.transcriptionSuccess, properties: [AnalyticsConstants.Property.screenName: AnalyticsConstants.Screen.chatScreen], adjustToken: AnalyticsConstants.AdjustToken.transcriptionSuccess)
                     let result = VoiceTranscriptionResult(
                         text: heardText,
@@ -2029,8 +2219,7 @@ struct VoiceInputSheet: View {
                 } else {
                     // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.transcriptionFailed, properties: [AnalyticsConstants.Property.screenName: AnalyticsConstants.Screen.chatScreen], adjustToken: AnalyticsConstants.AdjustToken.transcriptionFailed)
                     deleteAudioFile()
-                    let msg = heardText.isEmpty ? "Transcription unclear. Please try again." : "Couldn't understand: \"\(heardText)\""
-                    onError(msg)
+                    onError(PreferencesManager.shared.label("fc_v2_app_label_transcription_unclear", fallback: "Transcription unclear. Please try again."))
                     dismiss()
                 }
             }
@@ -2038,7 +2227,7 @@ struct VoiceInputSheet: View {
             await MainActor.run {
                 // AnalyticsManager.trackEvent(name: AnalyticsConstants.Event.transcriptionFailed, properties: [AnalyticsConstants.Property.screenName: AnalyticsConstants.Screen.chatScreen], adjustToken: AnalyticsConstants.AdjustToken.transcriptionFailed)
                 deleteAudioFile()
-                onError("Transcription failed. Please try again.")
+                onError(PreferencesManager.shared.label("fc_v2_app_label_transcription_failed_please_try_again", fallback: "Transcription failed. Please try again."))
                 dismiss()
             }
         }
