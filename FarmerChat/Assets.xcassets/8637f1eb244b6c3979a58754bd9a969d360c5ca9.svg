@@ -1,0 +1,9 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 44 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Icons">
+<path id="Wifi" d="M11.5 12.753L4 3.753C4 3.753 5.64503 1.95287 7 1.253C8.59946 0.426836 9.70039 0.20564 11.5 0.252998C13.1096 0.295357 14.0355 0.583812 15.5 1.253C17.0278 1.95108 19 3.753 19 3.753L11.5 12.753Z" fill="var(--fill-0, white)"/>
+<path id="Signal" d="M18 13L32 0V13H18Z" fill="var(--fill-0, white)"/>
+<g id="Battery">
+<path id="Union" d="M42 1H43C43.5523 1 44 1.44772 44 2V12C44 12.5523 43.5523 13 43 13H38C37.4477 13 37 12.5523 37 12V2C37 1.44772 37.4477 1 38 1H39V0H42V1Z" fill="var(--fill-0, white)"/>
+</g>
+</g>
+</svg>

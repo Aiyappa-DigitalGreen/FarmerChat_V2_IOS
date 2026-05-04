@@ -1,0 +1,6 @@
+# Config with secrets (use Config.plist.example as template)
+FarmerChat/Config.plist
+
+# Xcode
+DerivedData/
+*.xcuserstate

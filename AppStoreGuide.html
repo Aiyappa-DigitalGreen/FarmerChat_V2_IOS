@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FarmerChat — App Store Submission Guide</title>
+  <style>
+    :root {
+      --green-dark:   #1a4731;
+      --green-mid:    #2d6a4f;
+      --green-light:  #52b788;
+      --green-pale:   #d8f3dc;
+      --green-mist:   #f0faf3;
+      --amber:        #e9a825;
+      --amber-pale:   #fef9ec;
+      --red:          #c0392b;
+      --red-pale:     #fdf0ef;
+      --blue:         #2563eb;
+      --blue-pale:    #eff6ff;
+      --ink:          #1a1a2e;
+      --ink-soft:     #3d3d5c;
+      --ink-muted:    #6b7280;
+      --border:       #e5e7eb;
+      --border-dark:  #d1d5db;
+      --bg:           #f9fafb;
+      --white:        #ffffff;
+      --sidebar-w:    280px;
+      --radius:       10px;
+      --shadow:       0 1px 4px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; font-size: 16px; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--green-dark);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      padding: 0 0 32px;
+    }
+
+    .sidebar-header {
+      padding: 28px 24px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .sidebar-logo .icon {
+      width: 36px;
+      height: 36px;
+      background: var(--green-light);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .sidebar-logo .app-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -.3px;
+    }
+
+    .sidebar-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,.5);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-top: 2px;
+    }
+
+    .sidebar nav { padding: 16px 0; flex: 1; }
+
+    .nav-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,.35);
+      padding: 18px 24px 6px;
+    }
+
+    .sidebar a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 24px;
+      font-size: 13.5px;
+      color: rgba(255,255,255,.75);
+      text-decoration: none;
+      transition: background .15s, color .15s;
+      border-left: 3px solid transparent;
+    }
+
+    .sidebar a:hover,
+    .sidebar a.active {
+      background: rgba(255,255,255,.08);
+      color: #fff;
+      border-left-color: var(--green-light);
+    }
+
+    .sidebar a .num {
+      font-size: 11px;
+      color: rgba(255,255,255,.3);
+      min-width: 18px;
+    }
+
+    /* ── Main Content ── */
+    .main {
+      flex: 1;
+      max-width: 900px;
+      padding: 48px 56px 80px;
+      overflow-x: hidden;
+    }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-mid) 100%);
+      border-radius: 16px;
+      padding: 44px 48px;
+      margin-bottom: 48px;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "🍃";
+      position: absolute;
+      right: 48px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 96px;
+      opacity: .12;
+      pointer-events: none;
+    }
+
+    .hero h1 {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -.5px;
+      margin-bottom: 8px;
+    }
+
+    .hero p {
+      font-size: 15px;
+      color: rgba(255,255,255,.75);
+      max-width: 560px;
+    }
+
+    .hero .badges {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(255,255,255,.15);
+      color: rgba(255,255,255,.9);
+      border: 1px solid rgba(255,255,255,.2);
+    }
+
+    /* Sections */
+    .section {
+      margin-bottom: 60px;
+      scroll-margin-top: 32px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid var(--green-pale);
+    }
+
+    .section-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--green-mid);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--green-dark);
+      letter-spacing: -.3px;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+      margin: 28px 0 12px;
+    }
+
+    p { margin-bottom: 12px; color: var(--ink-soft); font-size: 15px; }
+
+    ul, ol {
+      padding-left: 24px;
+      margin-bottom: 14px;
+    }
+
+    li {
+      color: var(--ink-soft);
+      font-size: 15px;
+      margin-bottom: 6px;
+    }
+
+    strong { color: var(--ink); }
+
+    /* Info cards */
+    .callout {
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin: 16px 0;
+      display: flex;
+      gap: 12px;
+      font-size: 14px;
+    }
+
+    .callout .ico { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+    .callout p { margin: 0; font-size: 14px; }
+
+    .callout.info   { background: var(--blue-pale);  border-left: 4px solid var(--blue); }
+    .callout.tip    { background: var(--green-mist); border-left: 4px solid var(--green-light); }
+    .callout.warn   { background: var(--amber-pale); border-left: 4px solid var(--amber); }
+    .callout.danger { background: var(--red-pale);   border-left: 4px solid var(--red); }
+
+    .callout.info p   { color: #1e40af; }
+    .callout.tip p    { color: var(--green-dark); }
+    .callout.warn p   { color: #92400e; }
+    .callout.danger p { color: #991b1b; }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto;
+      margin: 16px 0;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    thead tr {
+      background: var(--green-dark);
+      color: #fff;
+    }
+
+    thead th {
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: .2px;
+    }
+
+    tbody tr { background: var(--white); }
+    tbody tr:nth-child(even) { background: var(--green-mist); }
+
+    tbody td {
+      padding: 11px 16px;
+      border-top: 1px solid var(--border);
+      color: var(--ink-soft);
+      vertical-align: top;
+    }
+
+    tbody td:first-child { color: var(--ink); font-weight: 500; }
+
+    /* Code */
+    pre {
+      background: #0f1923;
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      overflow-x: auto;
+      margin: 14px 0;
+      position: relative;
+    }
+
+    pre code {
+      font-family: "SF Mono", "Fira Code", Menlo, monospace;
+      font-size: 13.5px;
+      color: #a8d8a8;
+      line-height: 1.6;
+    }
+
+    code {
+      font-family: "SF Mono", "Fira Code", Menlo, monospace;
+      font-size: 13px;
+      background: #eef2ff;
+      color: #4338ca;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    pre code {
+      background: none;
+      color: #a8d8a8;
+      padding: 0;
+      font-size: 13.5px;
+    }
+
+    .code-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: rgba(168,216,168,.5);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    /* Step list */
+    .steps { list-style: none; padding: 0; counter-reset: steps; }
+
+    .steps li {
+      counter-increment: steps;
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      align-items: flex-start;
+    }
+
+    .steps li::before {
+      content: counter(steps);
+      min-width: 28px;
+      height: 28px;
+      background: var(--green-light);
+      color: var(--green-dark);
+      font-weight: 800;
+      font-size: 13px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Checklist */
+    .checklist { list-style: none; padding: 0; }
+
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 14px;
+      margin-bottom: 4px;
+      border-radius: 8px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      font-size: 14px;
+      transition: background .15s;
+    }
+
+    .checklist li:hover { background: var(--green-mist); }
+
+    .checklist li input[type="checkbox"] {
+      margin-top: 2px;
+      accent-color: var(--green-mid);
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    /* Key Identifiers card */
+    .id-card {
+      background: var(--green-dark);
+      border-radius: 14px;
+      padding: 28px 32px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .id-item .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: rgba(255,255,255,.45);
+      margin-bottom: 4px;
+    }
+
+    .id-item .value {
+      font-family: "SF Mono", "Fira Code", Menlo, monospace;
+      font-size: 14px;
+      color: var(--green-light);
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    /* Review timeline */
+    .timeline { position: relative; padding-left: 28px; }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 9px;
+      top: 6px;
+      bottom: 6px;
+      width: 2px;
+      background: var(--green-pale);
+    }
+
+    .tl-item {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .tl-item::before {
+      content: "";
+      position: absolute;
+      left: -24px;
+      top: 6px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--green-light);
+      border: 2px solid var(--white);
+      box-shadow: 0 0 0 2px var(--green-light);
+    }
+
+    .tl-item .tl-title { font-weight: 700; color: var(--ink); font-size: 14px; }
+    .tl-item .tl-desc  { font-size: 14px; color: var(--ink-muted); margin-top: 2px; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      margin-top: 60px;
+      font-size: 13px;
+      color: var(--ink-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main { padding: 32px 24px 60px; max-width: 100%; }
+      .hero { padding: 28px 24px; }
+      .hero::after { display: none; }
+      .id-card { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════ SIDEBAR ══════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <div class="icon">🌾</div>
+      <span class="app-name">FarmerChat</span>
+    </div>
+    <div class="sidebar-sub">App Store Guide</div>
+  </div>
+
+  <nav>
+    <div class="nav-section-label">Setup</div>
+    <a href="#s1"><span class="num">01</span> Prerequisites</a>
+    <a href="#s2"><span class="num">02</span> App Store Connect</a>
+    <a href="#s3"><span class="num">03</span> Xcode Configuration</a>
+
+    <div class="nav-section-label">Build & Upload</div>
+    <a href="#s4"><span class="num">04</span> Building a Production IPA</a>
+    <a href="#s5"><span class="num">05</span> Uploading to Apple</a>
+
+    <div class="nav-section-label">Submission</div>
+    <a href="#s6"><span class="num">06</span> App Store Metadata</a>
+    <a href="#s7"><span class="num">07</span> Submitting for Review</a>
+    <a href="#s8"><span class="num">08</span> After Approval</a>
+
+    <div class="nav-section-label">Ongoing</div>
+    <a href="#s9"><span class="num">09</span> Updating the App</a>
+    <a href="#s10"><span class="num">10</span> Switching Environments</a>
+    <a href="#s11"><span class="num">11</span> Troubleshooting</a>
+
+    <div class="nav-section-label">Reference</div>
+    <a href="#s12"><span class="num">12</span> Key Identifiers</a>
+    <a href="#checklist"><span class="num">✓</span> Submission Checklist</a>
+  </nav>
+</aside>
+
+<!-- ══════════════════════ MAIN ══════════════════════ -->
+<main class="main">
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>App Store Submission Guide</h1>
+    <p>Everything you need to build, configure, upload, and publish <strong style="color:#fff">FarmerChat</strong> on the Apple App Store — from first build to live release.</p>
+    <div class="badges">
+      <span class="badge">iOS</span>
+      <span class="badge">Xcode 15+</span>
+      <span class="badge">Bundle ID: org.digitalgreen.farmer.chatbot</span>
+      <span class="badge">Team: 49VAPTB77A</span>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <span class="ico">ℹ️</span>
+    <p><strong>iOS vs Android:</strong> Android distributes apps as <code>.apk</code> files. iOS distributes as <code>.ipa</code> files (iOS App Archive). Xcode handles creating the IPA — you just archive and upload.</p>
+  </div>
+
+  <!-- ─────────────── 1. Prerequisites ─────────────── -->
+  <section class="section" id="s1">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2 class="section-title">Prerequisites</h2>
+    </div>
+
+    <h3>Apple Developer Account</h3>
+    <p>You need an active <strong>Apple Developer Program</strong> membership ($99/year USD). Your existing Team ID is <code>49VAPTB77A</code>.</p>
+    <ul>
+      <li>Enroll at <strong>developer.apple.com/programs</strong> if not already enrolled.</li>
+      <li>The account email becomes your App Store Connect login.</li>
+      <li>Your account must have <strong>App Manager</strong> or <strong>Admin</strong> role to submit apps.</li>
+    </ul>
+
+    <h3>Required Tools</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Tool</th><th>Minimum Version</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>Xcode</td><td>15.0+</td><td>Build, archive, and upload the app</td></tr>
+          <tr><td>macOS</td><td>Ventura (13)+</td><td>Required to run Xcode 15</td></tr>
+          <tr><td>Transporter</td><td>Latest</td><td>Alternate IPA upload method (backup)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout tip">
+      <span class="ico">💡</span>
+      <p>Install <strong>Transporter</strong> from the Mac App Store (free, by Apple) as a backup uploader. It's useful when Xcode's upload step fails.</p>
+    </div>
+
+    <h3>Certificates &amp; Signing</h3>
+    <p>Your project uses <strong>Automatic Code Signing</strong> — Xcode manages certificates for you. To verify:</p>
+    <ol class="steps">
+      <li>Open <code>FarmerChat.xcodeproj</code> in Xcode.</li>
+      <li>Click the <strong>FarmerChat</strong> project in the navigator → select the <strong>FarmerChat</strong> target → <strong>Signing &amp; Capabilities</strong> tab.</li>
+      <li>Ensure <strong>Automatically manage signing</strong> is checked.</li>
+      <li>Confirm <strong>Team</strong> is set to your Digital Green team (<code>49VAPTB77A</code>).</li>
+    </ol>
+  </section>
+
+  <!-- ─────────────── 2. App Store Connect ─────────────── -->
+  <section class="section" id="s2">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2 class="section-title">App Store Connect Setup</h2>
+    </div>
+
+    <h3>Create the App Record</h3>
+    <ol class="steps">
+      <li>Go to <strong>appstoreconnect.apple.com</strong> and sign in.</li>
+      <li>Click <strong>Apps</strong> → <strong>"+"</strong> (top left) → <strong>New App</strong>.</li>
+      <li>Fill in the form below:</li>
+    </ol>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td>Platform</td><td>iOS</td></tr>
+          <tr><td>Name</td><td>FarmerChat (your App Store display name)</td></tr>
+          <tr><td>Primary Language</td><td>English (or your target language)</td></tr>
+          <tr><td>Bundle ID</td><td><code>org.digitalgreen.farmer.chatbot</code></td></tr>
+          <tr><td>SKU</td><td>A unique internal ID, e.g. <code>farmerchat-ios-2026</code></td></tr>
+          <tr><td>User Access</td><td>Full Access</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <span class="ico">⚠️</span>
+      <p>The Bundle ID you enter here <strong>must exactly match</strong> the one in your Xcode project: <code>org.digitalgreen.farmer.chatbot</code>. A mismatch will prevent upload.</p>
+    </div>
+
+    <h3>Register the Bundle ID (if not done)</h3>
+    <ol class="steps">
+      <li>Go to <strong>developer.apple.com/account/resources/identifiers</strong>.</li>
+      <li>Click <strong>"+"</strong> → <strong>App IDs</strong> → <strong>App</strong>.</li>
+      <li>Description: <code>FarmerChat</code> — Type: <strong>Explicit</strong> — Bundle ID: <code>org.digitalgreen.farmer.chatbot</code>.</li>
+      <li>Enable any <strong>Capabilities</strong> your app uses (e.g. Push Notifications).</li>
+      <li>Click <strong>Register</strong>.</li>
+    </ol>
+  </section>
+
+  <!-- ─────────────── 3. Xcode Config ─────────────── -->
+  <section class="section" id="s3">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2 class="section-title">Xcode Project Configuration for Production</h2>
+    </div>
+
+    <h3>Version Numbers</h3>
+    <p>In Xcode → <strong>FarmerChat</strong> target → <strong>General</strong> tab:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Current</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>Version (Marketing)</td><td><code>1.0</code></td><td>Shown to users on App Store. Increment for user-facing changes.</td></tr>
+          <tr><td>Build (Project Version)</td><td><code>1</code></td><td>Must be unique and increasing with every upload to Apple.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout danger">
+      <span class="ico">🚫</span>
+      <p><strong>Critical rule:</strong> The Build number must always be higher than the last uploaded build. Apple rejects duplicate build numbers. Even for a hotfix on the same version, bump Build from <code>1</code> → <code>2</code>.</p>
+    </div>
+
+    <h3>Set Release Build Configuration</h3>
+    <ol class="steps">
+      <li>Click the scheme selector (top bar in Xcode) → <strong>Edit Scheme…</strong></li>
+      <li>Select <strong>Archive</strong> in the left panel.</li>
+      <li>Set <strong>Build Configuration</strong> to <strong>Release</strong>.</li>
+    </ol>
+
+    <h3>Privacy Usage Descriptions (Info.plist)</h3>
+    <p>Apple requires a plain-English reason for every privacy API your app accesses. Missing strings cause automatic rejection.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Plist Key</th><th>Required If</th></tr></thead>
+        <tbody>
+          <tr><td><code>NSCameraUsageDescription</code></td><td>App accesses the camera</td></tr>
+          <tr><td><code>NSMicrophoneUsageDescription</code></td><td>App records audio</td></tr>
+          <tr><td><code>NSLocationWhenInUseUsageDescription</code></td><td>App uses location services</td></tr>
+          <tr><td><code>NSPhotoLibraryUsageDescription</code></td><td>App reads from photo library</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Verify Entitlements</h3>
+    <p>Your app's entitlements file is at <code>FarmerChat/FarmerChat.entitlements</code>. Open it and ensure only capabilities you actually use are listed. Unused entitlements trigger App Review rejections.</p>
+  </section>
+
+  <!-- ─────────────── 4. Build IPA ─────────────── -->
+  <section class="section" id="s4">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2 class="section-title">Building a Production IPA</h2>
+    </div>
+
+    <p>An <strong>IPA</strong> is the iOS equivalent of an Android APK. Here is the full build process:</p>
+
+    <h3>Step 1 — Select the Right Destination</h3>
+    <p>In Xcode's scheme selector, set the destination to <strong>Any iOS Device (arm64)</strong> — NOT a simulator. Simulator builds cannot be submitted to Apple.</p>
+
+    <pre><code><span class="code-label">Xcode Toolbar</span>FarmerChat  ▶  Any iOS Device (arm64)</code></pre>
+
+    <h3>Step 2 — Archive the App</h3>
+    <pre><code><span class="code-label">Menu</span>Product  →  Archive</code></pre>
+    <p>Xcode compiles a Release build and adds it to the Organizer. This takes 1–5 minutes. Wait for the spinner to complete.</p>
+
+    <h3>Step 3 — Open Organizer</h3>
+    <pre><code><span class="code-label">Menu</span>Window  →  Organizer</code></pre>
+    <p>You'll see your new archive listed with today's date and version number.</p>
+
+    <h3>Step 4 — Distribute the App</h3>
+    <ol class="steps">
+      <li>Select your archive in Organizer → click <strong>Distribute App</strong>.</li>
+      <li>Choose <strong>App Store Connect</strong> → <strong>Next</strong>.</li>
+      <li>Choose <strong>Upload</strong> → <strong>Next</strong>.</li>
+      <li>Leave all checkboxes at defaults (Strip Swift Symbols, Upload Symbols) → <strong>Next</strong>.</li>
+      <li>Select <strong>Automatically manage signing</strong> → <strong>Next</strong>.</li>
+      <li>Review the summary → click <strong>Upload</strong>.</li>
+    </ol>
+
+    <div class="callout tip">
+      <span class="ico">💡</span>
+      <p><strong>Need the IPA on disk?</strong> In step 3 above, choose <strong>Export</strong> instead of Upload. This saves the <code>.ipa</code> file locally. You can then drag it into the <strong>Transporter</strong> app to upload it later.</p>
+    </div>
+  </section>
+
+  <!-- ─────────────── 5. Upload ─────────────── -->
+  <section class="section" id="s5">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2 class="section-title">Uploading to App Store Connect</h2>
+    </div>
+
+    <p>After Xcode uploads, Apple processes the build. This takes <strong>10–30 minutes</strong>.</p>
+
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-title">Upload Complete</div>
+        <div class="tl-desc">Xcode reports success. The build appears in App Store Connect → TestFlight tab.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-title">Processing</div>
+        <div class="tl-desc">Apple runs automated checks on the binary. Status shows "Processing" (10–30 min).</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-title">Missing Compliance (if shown)</div>
+        <div class="tl-desc">Apple asks about encryption. For apps using only HTTPS, answer: No encryption. Or add <code>ITSAppUsesNonExemptEncryption = false</code> to Info.plist to skip this.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-title">Ready to Submit</div>
+        <div class="tl-desc">Build can now be attached to your App Store version for review.</div>
+      </div>
+    </div>
+
+    <h3>Upload via Transporter (Alternative)</h3>
+    <ol class="steps">
+      <li>Open <strong>Transporter</strong> from the Mac App Store.</li>
+      <li>Sign in with your Apple Developer Apple ID.</li>
+      <li>Drag and drop your exported <code>.ipa</code> file into the window.</li>
+      <li>Click <strong>Deliver</strong>.</li>
+    </ol>
+  </section>
+
+  <!-- ─────────────── 6. Metadata ─────────────── -->
+  <section class="section" id="s6">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2 class="section-title">App Store Listing &amp; Metadata</h2>
+    </div>
+
+    <p>In App Store Connect → Your App → <strong>App Store</strong> tab → <strong>1.0 Prepare for Submission</strong>:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Limit</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>App Previews &amp; Screenshots</td><td>—</td><td>Required. See device sizes below.</td></tr>
+          <tr><td>Promotional Text</td><td>170 chars</td><td>Can be updated anytime without resubmission.</td></tr>
+          <tr><td>Description</td><td>4,000 chars</td><td>Full app description shown on store page.</td></tr>
+          <tr><td>Keywords</td><td>100 chars total</td><td>Comma-separated. Drives search ranking.</td></tr>
+          <tr><td>Support URL</td><td>—</td><td>Must be a live, reachable URL.</td></tr>
+          <tr><td>Version (What's New)</td><td>—</td><td>Shown in App Store update notes.</td></tr>
+          <tr><td>Category</td><td>—</td><td>e.g. Productivity, Agriculture, Utilities</td></tr>
+          <tr><td>Age Rating</td><td>—</td><td>Complete the questionnaire.</td></tr>
+          <tr><td>Copyright</td><td>—</td><td>e.g. <code>2026 Digital Green</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Required Screenshot Sizes</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Device</th><th>Resolution</th><th>Required?</th></tr></thead>
+        <tbody>
+          <tr><td>6.9" iPhone (16 Pro Max)</td><td>1320 × 2868 px</td><td>Recommended</td></tr>
+          <tr><td>6.5" iPhone (14 Plus / 15 Plus)</td><td>1290 × 2796 px</td><td><strong>Required</strong></td></tr>
+          <tr><td>5.5" iPhone (8 Plus)</td><td>1242 × 2208 px</td><td><strong>Required</strong></td></tr>
+          <tr><td>iPad Pro 12.9"</td><td>2048 × 2732 px</td><td>If iPad supported</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Capture screenshots in Xcode Simulator:</p>
+    <pre><code><span class="code-label">Simulator</span>File  →  Save Screenshot   (or Cmd + S)</code></pre>
+  </section>
+
+  <!-- ─────────────── 7. Submit for Review ─────────────── -->
+  <section class="section" id="s7">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2 class="section-title">Submitting for Apple Review</h2>
+    </div>
+
+    <h3>Attach the Build</h3>
+    <ol class="steps">
+      <li>App Store Connect → Your App → <strong>App Store</strong> → <strong>1.0 Prepare for Submission</strong>.</li>
+      <li>Scroll to the <strong>Build</strong> section → click <strong>"+"</strong>.</li>
+      <li>Select your uploaded build → click <strong>Done</strong>.</li>
+    </ol>
+
+    <h3>Fill in Review Information</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Sign-in Required</td><td>Yes/No — if Yes, provide a working demo account</td></tr>
+          <tr><td>Demo Account Username</td><td>A test account Apple reviewers can log into</td></tr>
+          <tr><td>Demo Account Password</td><td>Stable password that won't expire</td></tr>
+          <tr><td>Notes for Reviewer</td><td>Explain any non-obvious flows or features</td></tr>
+          <tr><td>Attachment</td><td>Optional video walkthrough — speeds up review</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout tip">
+      <span class="ico">💡</span>
+      <p>Clear reviewer notes and a working demo account are the <strong>single biggest factor</strong> in avoiding rejections. Apple reviewers use real devices — don't assume they know your app's context.</p>
+    </div>
+
+    <h3>Release Options</h3>
+    <ul>
+      <li><strong>Manually release</strong> — you click "Release" after approval. Gives you control over timing.</li>
+      <li><strong>Automatically release</strong> — goes live immediately after Apple approves.</li>
+      <li><strong>Scheduled release</strong> — goes live at a specific date/time you set.</li>
+    </ul>
+
+    <h3>Submit</h3>
+    <p>Click <strong>Add for Review</strong> → review the checklist → <strong>Submit to App Review</strong>.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Submission Type</th><th>Typical Review Time</th></tr></thead>
+        <tbody>
+          <tr><td>First submission</td><td>1–3 business days</td></tr>
+          <tr><td>App update</td><td>1–2 business days</td></tr>
+          <tr><td>Expedited review (urgent bug)</td><td>Same day (request at developer.apple.com/contact)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ─────────────── 8. After Approval ─────────────── -->
+  <section class="section" id="s8">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <h2 class="section-title">After Approval — Releasing to Users</h2>
+    </div>
+
+    <p>If you chose <strong>Manual Release</strong>:</p>
+    <ol class="steps">
+      <li>Go to App Store Connect → Your App → <strong>App Store</strong>.</li>
+      <li>Click <strong>Release This Version</strong>.</li>
+    </ol>
+
+    <p>If you chose <strong>Automatic Release</strong>: no action needed — Apple publishes it immediately after approval.</p>
+
+    <div class="callout info">
+      <span class="ico">ℹ️</span>
+      <p>After release, the app appears on the App Store within a few hours due to Apple's CDN propagation across regions. It may not be visible immediately in all countries at the exact same time.</p>
+    </div>
+  </section>
+
+  <!-- ─────────────── 9. Updates ─────────────── -->
+  <section class="section" id="s9">
+    <div class="section-header">
+      <div class="section-num">9</div>
+      <h2 class="section-title">Updating the App (New Versions)</h2>
+    </div>
+
+    <p>Every update follows this cycle:</p>
+
+    <ol class="steps">
+      <li><strong>Bump the Build number</strong> in Xcode (always required — even for tiny fixes).</li>
+      <li><strong>Bump the Version number</strong> if the change is user-facing (e.g. <code>1.0</code> → <code>1.1</code>).</li>
+      <li><strong>Archive &amp; Upload</strong> — same steps as Section 4.</li>
+      <li>In App Store Connect → <strong>App Store</strong> → click <strong>"+"</strong> next to iOS App (left sidebar) → <strong>New Version</strong>.</li>
+      <li>Enter the new version number (must match <code>MARKETING_VERSION</code> in Xcode).</li>
+      <li>Fill in <strong>"What's New in This Version"</strong> → attach the build → submit.</li>
+    </ol>
+
+    <div class="callout tip">
+      <span class="ico">💡</span>
+      <p>You do <strong>not</strong> need to redo all metadata for an update — only update the "What's New" text and attach the new build. Everything else carries over from the previous version.</p>
+    </div>
+  </section>
+
+  <!-- ─────────────── 10. Environments ─────────────── -->
+  <section class="section" id="s10">
+    <div class="section-header">
+      <div class="section-num">10</div>
+      <h2 class="section-title">Switching to Production Backend</h2>
+    </div>
+
+    <p>Before every App Store submission, ensure your app points to <strong>production</strong> servers, not staging or localhost.</p>
+
+    <h3>Find All Hardcoded Values</h3>
+    <pre><code><span class="code-label">Terminal — run from project root</span># Find all API URLs in Swift files
+grep -r "http" FarmerChat/ --include="*.swift" | grep -v "//.*http"
+
+# Find debug flags or environment toggles
+grep -r "DEBUG\|isDebug\|isDev\|staging\|localhost" FarmerChat/ --include="*.swift"</code></pre>
+
+    <h3>Recommended: Build Configuration Flags</h3>
+    <p>Use Xcode's Debug/Release configurations to switch environments automatically — no manual changes needed before each build.</p>
+
+    <ol class="steps">
+      <li>In Xcode → FarmerChat target → <strong>Build Settings</strong>.</li>
+      <li>Search for <strong>Active Compilation Conditions</strong>.</li>
+      <li>Under <strong>Debug</strong>: add <code>DEBUG</code>. Under <strong>Release</strong>: leave empty.</li>
+      <li>Use <code>#if DEBUG</code> in code to switch values:</li>
+    </ol>
+
+    <pre><code><span class="code-label">Swift — AppConfig.swift</span>struct AppConfig {
+    static let apiBaseURL: String = {
+        #if DEBUG
+        return "https://staging-api.farmerchat.digitalgreen.org"
+        #else
+        return "https://api.farmerchat.digitalgreen.org"
+        #endif
+    }()
+}</code></pre>
+
+    <h3>What to Change for Production</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Item</th><th>Dev / Staging</th><th>Production</th></tr></thead>
+        <tbody>
+          <tr><td>API Base URL</td><td><code>staging-api.*</code></td><td><code>api.*</code> (prod endpoint)</td></tr>
+          <tr><td>API Keys / Tokens</td><td>Dev/test keys</td><td>Live production keys</td></tr>
+          <tr><td>Analytics</td><td>Disabled or dev property</td><td>Production property</td></tr>
+          <tr><td>Verbose Logging</td><td>Enabled</td><td>Disabled</td></tr>
+          <tr><td>Feature Flags</td><td>Experimental ON</td><td>Stable features only</td></tr>
+          <tr><td>Firebase / Crashlytics</td><td>Dev project</td><td>Prod project</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Test a Production Build Locally</h3>
+    <p>Build with Release settings without uploading, to verify your production config on a real device:</p>
+    <pre><code><span class="code-label">Xcode Menu</span>Product  →  Build For  →  Profiling</code></pre>
+  </section>
+
+  <!-- ─────────────── 11. Troubleshooting ─────────────── -->
+  <section class="section" id="s11">
+    <div class="section-header">
+      <div class="section-num">11</div>
+      <h2 class="section-title">Troubleshooting Common Errors</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Error</th><th>Cause</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>No accounts with App Store distribution</td>
+            <td>Apple ID not signed in to Xcode</td>
+            <td>Xcode → Settings → Accounts → Add Apple ID</td>
+          </tr>
+          <tr>
+            <td>Invalid Binary (upload rejected)</td>
+            <td>Simulator build or wrong configuration</td>
+            <td>Archive with <strong>Any iOS Device (arm64)</strong>, Release config</td>
+          </tr>
+          <tr>
+            <td>Missing Compliance prompt</td>
+            <td>Apple asking about encryption use</td>
+            <td>Add <code>ITSAppUsesNonExemptEncryption = false</code> to Info.plist</td>
+          </tr>
+          <tr>
+            <td>Minimum OS version mismatch</td>
+            <td>Deployment target too low</td>
+            <td>Xcode → General → Minimum Deployments → set iOS 16.0+</td>
+          </tr>
+          <tr>
+            <td>Build stuck in Processing</td>
+            <td>Apple server delay or binary issue</td>
+            <td>Wait 2 hours; if still stuck, delete and re-upload. Check Apple System Status.</td>
+          </tr>
+          <tr>
+            <td>Duplicate build number</td>
+            <td>Build number already used</td>
+            <td>Increment <code>CURRENT_PROJECT_VERSION</code> and re-archive</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>App Review Rejections</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Rejection Reason</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr><td>Missing privacy usage strings</td><td>Add <code>NSXxx UsageDescription</code> keys to Info.plist</td></tr>
+          <tr><td>Crashes on reviewer's device</td><td>Test on multiple real devices, not just Simulator</td></tr>
+          <tr><td>Guideline 4.0 — Design</td><td>App appears unfinished; improve UI polish</td></tr>
+          <tr><td>Guideline 2.1 — App Completeness</td><td>Demo account credentials not working; fix and resubmit</td></tr>
+          <tr><td>Sign-in not disclosed</td><td>Fill in demo account details in Review Information</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout info">
+      <span class="ico">ℹ️</span>
+      <p>After a rejection, reply in <strong>App Store Connect → Resolution Center</strong> with your fix explanation. You don't always need to resubmit a new build — sometimes a response is enough.</p>
+    </div>
+  </section>
+
+  <!-- ─────────────── 12. Key Identifiers ─────────────── -->
+  <section class="section" id="s12">
+    <div class="section-header">
+      <div class="section-num">12</div>
+      <h2 class="section-title">Key Identifiers</h2>
+    </div>
+
+    <p>These values are specific to the <strong>FarmerChat</strong> Xcode project. Keep them handy for any Apple developer portal tasks.</p>
+
+    <div class="id-card">
+      <div class="id-item">
+        <div class="label">Bundle Identifier</div>
+        <div class="value">org.digitalgreen.farmer.chatbot</div>
+      </div>
+      <div class="id-item">
+        <div class="label">Development Team ID</div>
+        <div class="value">49VAPTB77A</div>
+      </div>
+      <div class="id-item">
+        <div class="label">Marketing Version</div>
+        <div class="value">1.0</div>
+      </div>
+      <div class="id-item">
+        <div class="label">Build Number</div>
+        <div class="value">1 (increment before each upload)</div>
+      </div>
+      <div class="id-item">
+        <div class="label">Code Signing Style</div>
+        <div class="value">Automatic</div>
+      </div>
+      <div class="id-item">
+        <div class="label">Entitlements File</div>
+        <div class="value">FarmerChat/FarmerChat.entitlements</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── Checklist ─────────────── -->
+  <section class="section" id="checklist">
+    <div class="section-header">
+      <div class="section-num">✓</div>
+      <h2 class="section-title">Pre-Submission Checklist</h2>
+    </div>
+
+    <p>Run through this before every App Store submission:</p>
+
+    <ul class="checklist">
+      <li><input type="checkbox" /> Build number incremented (higher than last upload)</li>
+      <li><input type="checkbox" /> Version number updated if this is a user-facing change</li>
+      <li><input type="checkbox" /> Archive built targeting <strong>Any iOS Device (arm64)</strong></li>
+      <li><input type="checkbox" /> Archive built with <strong>Release</strong> build configuration</li>
+      <li><input type="checkbox" /> All API URLs pointing to <strong>production</strong> endpoints</li>
+      <li><input type="checkbox" /> Debug logging and verbose output disabled</li>
+      <li><input type="checkbox" /> All Info.plist privacy usage descriptions filled in</li>
+      <li><input type="checkbox" /> Screenshots uploaded for 6.5" and 5.5" iPhone sizes</li>
+      <li><input type="checkbox" /> App description, keywords, and metadata reviewed</li>
+      <li><input type="checkbox" /> Demo account credentials provided (if login required)</li>
+      <li><input type="checkbox" /> Support URL is live and reachable</li>
+      <li><input type="checkbox" /> Age rating questionnaire completed</li>
+      <li><input type="checkbox" /> Encryption compliance answered (or <code>ITSAppUsesNonExemptEncryption = false</code>)</li>
+      <li><input type="checkbox" /> Entitlements file matches only capabilities actually used</li>
+      <li><input type="checkbox" /> Tested on a real physical device (not only Simulator)</li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>FarmerChat iOS · Digital Green · 2026</span>
+    <span>Bundle: <code>org.digitalgreen.farmer.chatbot</code></span>
+  </footer>
+
+</main>
+
+<script>
+  // Highlight active sidebar link on scroll
+  const sections = document.querySelectorAll('.section, #checklist');
+  const links = document.querySelectorAll('.sidebar a');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const id = entry.target.id;
+        const active = document.querySelector(`.sidebar a[href="#${id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
